@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 """
 Created on Mon May  7 14:08:56 2018
 
@@ -10,6 +10,31 @@ import numpy as np
 import Actuariat as act
 import random
 import time
+
+
+#%%
+
+
+class Conjoint:
+    def __init__(self, identifiant, rang, age):
+        self.identifiant = identifiant
+        self.Rang = rang
+        self.Age = age
+        
+
+#%%
+
+class Agent:
+    
+    def __init__(self,identifiant,age):
+        self.identifiant = identifiant
+        self.Age = age
+        self.Conjoins = []
+        self.Enfants = []
+        
+    def getAge(self):
+        return self.Age
+    
 
 
 #%%
@@ -62,10 +87,14 @@ def simulerEffectif_old(Agents):
 
 
 #%%
-def simulerEffectif(Agents, Table, n_simulation):
-    n = len(Agents)
+def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation):
+    
+    
+    n = len(Adherents)
 #    survie = np.zeros((n,MAX_ANNEES),dtype=int)
 #    deces_annuels = np.zeros(MAX_ANNEES,dtype=int)
+
+    # 
     
     survie_total = np.zeros((n,MAX_ANNEES),dtype=int)
     survie_total_N_1 = np.zeros(n, dtype=int)
@@ -84,7 +113,7 @@ def simulerEffectif(Agents, Table, n_simulation):
                     survie_total_N_1[i] = 1
                 else:
                     if survie_total_N_1[i] == 1 :
-                        temp = is_alive(Agents[i] + j, Table)
+                        temp = is_alive(Adherents[i] + j, Table)
                         survie_total[i,j] = survie_total[i,j] + temp
                         deces_annuels_total[j] = deces_annuels_total[j] + (1-temp)
                         survie_total_N_1[i] = temp
@@ -131,18 +160,4 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
 
 #%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
