@@ -1,133 +1,140 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May  7 14:08:56 2018
+
+@author: a.teffal
+"""
+#%%
+import pandas as pd
+import numpy as np
+import Actuariat as act
+import random
+import time
+
+
+#%%
+
+class Personne:
+    def __init__(self, identifiant, age, sexe):
+        self.identifiant = identifiant
+        self.Age = age
+        self.Sexe = sexe
+        self.Vivant = 1
+        
+    def getAge(self):
+        return self.Age
+    
+    def getSexe(self):
+        return self.Sexe
+    
+    def getIdentifiant(self):
+        return self.identifiant
+    
+    def getVivant(self):
+        return self.Vivant
+    
+    def decede(self):
+        self.Vivant = 0
+    
+    
+    def setVivant(self):
+        self.Vivant = 1
+        
+    def projeter_old(self, table, n = 1):
+        if self.Vivant == 1:
+            vivant = is_alive(self.getAge() + n , table)
+            temp = Personne(self.identifiant, self.Age + n, self.Sexe)
+            
+            if vivant == 0:
+                temp.decede()    
+            
+            return temp
+        else:
+            temp = Personne(self.identifiant, self.Age + n, self.Sexe)
+            temp.decede()
+            return temp
+        
+    def projeter(self, table, n = 1):
+        
+        if self.Vivant == 1:
+            survie = is_alive(self.getAge() + n , table)
+            if survie == 0:
+                self.decede() 
+        else:
+            survie = 0
+        
+        return survie
+            
+        
+            
+        
+        
+    
+#%%
+
+class Conjoint(Personne):
+    def __init__(self, identifiant, rang, age, sexe):
+        Personne.__init__(self, identifiant, age, sexe)
+        self.Rang = rang
+        
+    def getRang(self):
+        return self.Rang
+    
+    def getIdentifiant(self):
+        return (self.Identifiant, self.Rang)
+
+#%%
+        
+class Enfant:
+    def __init__(self, identifiant, rang, age, sexe):
+        Personne.__init__(self, identifiant, age, sexe)
+        self.Rang = rang
+    
+    def getRang(self):
+        return self.Rang
+    
+    def getIdentifiant(self):
+        return (self.Identifiant, self.Rang)
+        
+
+#%%
+
+class Agent(Personne):
+    
+    def __init__(self,identifiant,age, sexe):
+        Personne.__init__(self, identifiant, age, sexe)
+        self.Conjoints = []
+        self.Enfants = []
+        self.maxRangConjoint = 0
+        self.maxRangEnfant = 0
+        
+    def ajouterConjoint(self, age, sexe, rang = None):
+        self.maxRangConjoint += 1
+        if rang == None:
+            self.Conjoints.append(Conjoint(self.identifiant,self.maxRangConjoint, age, sexe))
+        else:
+            self.Conjoints.append(Conjoint(self.identifiant,rang, age, sexe))
+        
+    def ajouterEnfant(self, age, sexe, rang = None):
+        self.maxRangEnfant += 1
+        if rang == None:
+            self.Enfants.append(Enfant(self.identifiant,self.maxRangEnfant, age, sexe))
+        else:
+            self.Enfants.append(Enfant(self.identifiant,rang, age, sexe))
+        
+    def setVivantConjoints(self):
+        for conj in self.Conjoints:
+            conj.setVivant()
+    
+
+#%%
+
+
+def is_alive(Age, Table):
+    
+    if Table[Age]!=0:
+        p = Table[Age+1]/Table[Age]
+    else:
         p = 0
 
     if random.random() <= p:
@@ -319,4 +326,18 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
 
 #%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
