@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May  7 10:44:14 2018
-
-@author: a.teffal
-"""
 import numpy as np
 
 #%%
@@ -104,6 +98,55 @@ def sfs_nQx(Age, n, Table):
         return (1 - sfs_lx(Age + n, Table) / sfs_lx(Age, Table))
     else:
         return 1
+
+#%%
+
+
+#Public Function DateDepart(ByVal dDate As Date)
+#    'Si Date de départ = 1/1/N alors sortie le 1/1/N*/
+#    If Day(dDate) = 1 And Month(dDate) = 1 Then
+#        DateDepart = DateSerial(Year(dDate), 1, 1)
+#        Exit Function
+#    End If
+#    
+#    'Si Date de départ = 1/7/N alors sortie le 1/7/N*/
+#    If Day(dDate) = 1 And Month(dDate) = 7 Then
+#        DateDepart = DateSerial(Year(dDate), 7, 1)
+#        Exit Function
+#    End If
+#    
+#    If Month(dDate) <= 6 Then
+#        DateDepart = DateSerial(Year(dDate), 7, 1)
+#        Exit Function
+#    Else
+#        DateDepart = DateSerial(Year(dDate) + 1, 1, 1)
+#        Exit Function
+#    End If
+#
+#End Function
+#
+#
+##%%
+#
+#Public Function DateDepartEffective(ByVal dDateNaissance As Date, ByVal dDateEngagement As Date)
+#    Dim dDateDepartTheorique As Date
+#    
+#    'Calcul de la date de départ théorique
+#    If DateDiff("d", dDateEngagement, DateSerial(2002, 1, 1)) > 0 Then
+#        dDateDepartTheorique = DateAdd("yyyy", nAgeDepartAv2002, dDateNaissance)
+#    Else
+#        dDateDepartTheorique = DateAdd("yyyy", nAgeDepartAp2002, dDateNaissance)
+#    End If
+#    
+#    'Si la date de départ théorique est antérieure à la date de calcul, mettre date de calcul + 1 jour
+#    If DateDiff("d", dDateDepartTheorique, DateCalcul) > 0 Then
+#        dDateDepartTheorique = DateAdd("d", 1, DateCalcul)
+#    End If
+#    
+#    'Calcul de la date de départ effective
+#     DateDepartEffective = DateDepart(dDateDepartTheorique)
+#    
+#End Function
 
 #%%
 
