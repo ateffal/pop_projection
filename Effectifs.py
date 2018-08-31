@@ -112,13 +112,14 @@ class Enfant(Personne):
 
 class Agent(Personne):
     
-    def __init__(self,identifiant,age, sexe):
+    def __init__(self,identifiant,age, sexe, type_):
         Personne.__init__(self, identifiant, age, sexe)
         self.Conjoints = []
         self.Enfants = []
         self.maxRangConjoint = 0
         self.maxRangEnfant = 0
         self.Present = 1
+        self.Type = type_
     
     def getPresent(self):
         return self.Present
@@ -144,12 +145,9 @@ class Agent(Personne):
         for conj in self.Conjoints:
             conj.setVivant()
             
-#    def setPresentConjoints(self, present):
-#        for conj in self.Conjoints:
-#            conj.setPresent(present)
-            
     def projeter(self, table, n = 1):
-        # return (survie, deces, demission) 
+        if Personne.getVivant(self) == 0:
+            return (0, 0, 0)
         vivant = Personne.will_survive(self, table, n)
         if vivant == 0:
             return (0, 1, 0) # agent decede
@@ -205,7 +203,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
     
     # Chargements des agents (avec zero conjoints et zeros enfants)
     for i in range(n_a):
-        agent = Agent(Adherents['Identifiant'][i], Adherents['Age'][i], Adherents['Sexe'][i])
+        agent = Agent(Adherents['Identifiant'][i], Adherents['Age'][i], Adherents['Sexe'][i], Adherents['Type'][i])
         indices_agents[Adherents['Identifiant'][i]] = i
         Agents.append(agent)
         
@@ -287,33 +285,33 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
 
 #%%
 
-def calculerEffectif(AgentsProjetes):
-    survie_Agents = {}
-    #survie_Conjoint = {}
-    #survie_Enfants = {}
-    
-    print(AgentsProjetes)
-    
-    n_agents, n_annees, n_sim = AgentsProjetes.shape
-    
-    for i in range(n_agents):
-        temp = [0]*n_annees
-        for j in range(n_annees):
-            temp_sum = 0
-            for k in range(n_sim):
-                temp_sum = temp_sum + AgentsProjetes[i,j,k].getVivant()
-            temp_sum = temp_sum/n_sim
-            temp[j] = temp_sum
-        survie_Agents[AgentsProjetes[i,0,0].getIdentifiant()] = temp
-                #survie_Agents[AgentsProjetes[i,j,k]]
-
-    return survie_Agents
+#def calculerEffectif(AgentsProjetes):
+#    survie_Agents = {}
+#    #survie_Conjoint = {}
+#    #survie_Enfants = {}
+#    
+#    print(AgentsProjetes)
+#    
+#    n_agents, n_annees, n_sim = AgentsProjetes.shape
+#    
+#    for i in range(n_agents):
+#        temp = [0]*n_annees
+#        for j in range(n_annees):
+#            temp_sum = 0
+#            for k in range(n_sim):
+#                temp_sum = temp_sum + AgentsProjetes[i,j,k].getVivant()
+#            temp_sum = temp_sum/n_sim
+#            temp[j] = temp_sum
+#        survie_Agents[AgentsProjetes[i,0,0].getIdentifiant()] = temp
+#                #survie_Agents[AgentsProjetes[i,j,k]]
+#
+#    return survie_Agents
 
 #%%
 ################################################# Code pour les tests ############################################
 
 # nombre maximum d'années de projection
-MAX_ANNEES = 60
+MAX_ANNEES = 50
 
 # chargement des données
 agents_0=pd.read_csv("Adherents_0.csv",sep=";",decimal=',')
@@ -324,11 +322,20 @@ enfants_0=pd.read_csv("enfants.csv",sep=";",decimal=',')
 agents_0["DateEngagement"] = pd.to_datetime(agents_0["DateEngagement"],format='%d/%m/%Y')
 
 
+#importation du type et des ages de depart
+ages_depart = {}
+with open('AgeDepart.csv') as f:
+    for line in f:
+        (key, val) = line.split(sep=';')
+        if not val == '':
+            ages_depart[key] = int(val.strip())
+
+
 #%%
 
 t1 = time.time()
 
-survie_agents, survie_conjoints, deces_agents, dem_agents, deces_conjoints  = simulerEffectif(agents_0, conjoints_0, enfants_0, act.TV_88_90,1000,MAX_ANNEES=60)
+survie_agents, survie_conjoints, deces_agents, dem_agents, deces_conjoints  = simulerEffectif(agents_0, conjoints_0, enfants_0, act.TV_88_90,1000,MAX_ANNEES)
 t2 = time.time()
 
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
@@ -336,28 +343,48 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
 #%%
 
-# aggregation des projections annuelles
 
 effectifs_actifs =[0]*MAX_ANNEES
 effectifs_retraites =[0]*MAX_ANNEES
+effectifs_nouveaux_retraites = [0]*MAX_ANNEES
+deces_actifs =  [0]*MAX_ANNEES
+dem_actifs =  [0]*MAX_ANNEES
 
-n = len(agents_0)
-
-for i in range(n):
-    age = agents_0['Age'][i]
-    for j in range(MAX_ANNEES):
-        if 1:
-            
-        
-
-
-effectifs_agents =[0]*MAX_ANNEES           
+#Annee 0 
+for a in survie_agents:
+    if (agents_0[agents_0['Identifiant']==a]['Type'].any() == 'Actif'):
+        effectifs_actifs[0] +=1
+    else:
+        effectifs_retraites[0] +=1
+          
     
 for a in survie_agents:
-    effectifs_agents = [i + j for i, j in zip(effectifs_agents, survie_agents[a])]
+    age_actuel = int(agents_0[agents_0['Identifiant']==a]['Age']) +1 # car Age correspond a annee = 0 
+    age_depart = ages_depart[a]
+    for i in range(1,MAX_ANNEES): # on commence a partir de annee 1
+        if age_actuel < age_depart:
+            effectifs_actifs[i] += survie_agents[a][i]
+            deces_actifs[i] += deces_agents[a][i]
+            dem_actifs[i] += dem_agents[a][i]
+        else:
+            effectifs_retraites[i] += survie_agents[a][i]
+            if age_actuel == age_depart:
+                effectifs_nouveaux_retraites[i] += survie_agents[a][i]
+        age_actuel += 1
     
-print(effectifs_agents)
+print('Effectifs des actifs : ')
+print(effectifs_actifs)
 
+print('Effectifs des retraites : ')
+print(effectifs_retraites)
+
+
+print('Effectifs des nouveaux retraites : ')
+print(effectifs_nouveaux_retraites)
+
+
+
+########################################################################################
 effectifs_conjoints =[0]*MAX_ANNEES   
 
 for a in survie_conjoints:
@@ -365,13 +392,52 @@ for a in survie_conjoints:
 
 print(effectifs_conjoints)
 
+###########################################################################################
 
-effectifs_agents_deces =[0]*MAX_ANNEES           
-    
-for a in deces_agents:
-    effectifs_agents_deces = [i + j for i, j in zip(effectifs_agents_deces, deces_agents[a])]
-    
-print(effectifs_agents_deces)
+#effectifs_agents_deces =[0]*MAX_ANNEES           
+#    
+#for a in deces_agents:
+#    effectifs_agents_deces = [i + j for i, j in zip(effectifs_agents_deces, deces_agents[a])]
+#    
+#print(effectifs_agents_deces)
+
+#############################################################################################
+
+
+#%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

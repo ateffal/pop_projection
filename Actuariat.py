@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+from datetime import date
+
 
 #%%
 TD_73_77 = np.array([100000, 98471, 98360, 98281, 98220, 98167, 98120, 98076, 98035, 97997, 
@@ -102,51 +105,44 @@ def sfs_nQx(Age, n, Table):
 #%%
 
 
-#Public Function DateDepart(ByVal dDate As Date)
-#    'Si Date de départ = 1/1/N alors sortie le 1/1/N*/
-#    If Day(dDate) = 1 And Month(dDate) = 1 Then
-#        DateDepart = DateSerial(Year(dDate), 1, 1)
-#        Exit Function
-#    End If
-#    
-#    'Si Date de départ = 1/7/N alors sortie le 1/7/N*/
-#    If Day(dDate) = 1 And Month(dDate) = 7 Then
-#        DateDepart = DateSerial(Year(dDate), 7, 1)
-#        Exit Function
-#    End If
-#    
-#    If Month(dDate) <= 6 Then
-#        DateDepart = DateSerial(Year(dDate), 7, 1)
-#        Exit Function
-#    Else
-#        DateDepart = DateSerial(Year(dDate) + 1, 1, 1)
-#        Exit Function
-#    End If
+def dateDepart(dDate):
+    
+    '''
+        Retourne le debut de semestre qui suit immediatement
+        la date donnee en parametre.
+    '''
+    # Si Date de départ = 1/1/N alors sortie le 1/1/N*/
+    if dDate.day == 1 and dDate.month == 1 :
+        return date(dDate.year,1,1)
+    
+    # Si Date de départ = 1/7/N alors sortie le 1/7/N*/
+    if dDate.day == 1 and dDate.month == 7 :
+        return date(dDate.year,7,1)
+    
+    if dDate.month <= 6 :
+       return date(dDate.year,7,1)
+    else :
+        return date(dDate.year + 1, 1, 1)
+
+#%%
 #
-#End Function
-#
-#
-##%%
-#
-#Public Function DateDepartEffective(ByVal dDateNaissance As Date, ByVal dDateEngagement As Date)
-#    Dim dDateDepartTheorique As Date
-#    
-#    'Calcul de la date de départ théorique
-#    If DateDiff("d", dDateEngagement, DateSerial(2002, 1, 1)) > 0 Then
-#        dDateDepartTheorique = DateAdd("yyyy", nAgeDepartAv2002, dDateNaissance)
-#    Else
-#        dDateDepartTheorique = DateAdd("yyyy", nAgeDepartAp2002, dDateNaissance)
-#    End If
-#    
-#    'Si la date de départ théorique est antérieure à la date de calcul, mettre date de calcul + 1 jour
-#    If DateDiff("d", dDateDepartTheorique, DateCalcul) > 0 Then
-#        dDateDepartTheorique = DateAdd("d", 1, DateCalcul)
-#    End If
-#    
-#    'Calcul de la date de départ effective
-#     DateDepartEffective = DateDepart(dDateDepartTheorique)
-#    
-#End Function
+def dateDepartEffective(dDateNaissance, dDateEngagement, nAgeDepartAv2002 = 55, nAgeDepartAp2002 = 60) :
+    
+    '''
+        Retourne la date de retraite theorique ( age de retraite)
+    '''
+    
+    # Calcul de la date de départ théorique
+    date2002 = date(2002 ,1,1)
+    
+    if (dDateEngagement - date2002).days <= 0 :
+        dDateDepartTheorique = date(dDateNaissance.year + nAgeDepartAv2002, dDateNaissance.month, dDateNaissance.day)
+    else:
+        dDateDepartTheorique = date(dDateNaissance.year + nAgeDepartAp2002, dDateNaissance.month, dDateNaissance.day)
+    
+    # Calcul de la date de départ effective
+    return dateDepart(dDateDepartTheorique)
+
 
 #%%
 
