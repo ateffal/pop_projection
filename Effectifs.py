@@ -23,30 +23,19 @@ def turnover(age) :
         else:
             return 0
 
-def probaMariage(age, typeAgent = 'Actif'):
+#%%
+def probaMariage(age, typeAgent):
     """
     Return the probability of getting maried  during the following year at a given age
 
     """
-    if typeAgent == None or typeAgent=='Actif':
-        if age >= 35 and age <= 65:
-            return 1
+    if typeAgent=='Actif':
+        if age >= 35 and age <= 54:
+            return 0.03
         else :
             return 0
     else:
         return 0
-
-
-    # initialisation des probabilités de mariage annuelles
-#    probamariabge = {}
-#    for i in range(25,55):
-#        probamariabge[str(i)] = 0.0950338528553041
-#    age = str(age)
-#    if not age in probamariabge:
-#        return 0
-#    return probamariabge[age]
-
-
 
 
 #%%
@@ -299,7 +288,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
         else:
             print('Conjoint ' + Conjoints['Identifiant'][i] + ' ne correspond à aucun agent.')
 
-    print('Lenght Conjoints : ' + str(len(Conjoints)))
+#    print('Lenght Conjoints : ' + str(len(Conjoints)))
 
     #Ajout des enfants
     for i in range(n_e):
@@ -331,7 +320,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
             Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())] = [n_simulation] + [0]*(MAX_ANNEES-1)
             Conjoints_deces[(Agents[i].getIdentifiant(), conj.getRang())] = [0] + [0]*(MAX_ANNEES-1)
 
-    print('Lenght survie_conjoints : ' + str(len(Conjoints_survie)))
+#    print('Lenght survie_conjoints : ' + str(len(Conjoints_survie)))
 
     # remise à l'état initial des agents( appelée à la fin de chaque simulation)
     def resetAgents():
@@ -339,7 +328,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
             Agents[i].setVivant()
             Agents[i].setPresent()
             Agents[i].resetAge()
-            # Agents[i].resetSituationFamille()
+            #Agents[i].resetSituationFamille()
             Agents[i].setVivantConjoints()
             Agents[i].resetMaxRang()
             for conj in Agents[i].Conjoints:
@@ -348,6 +337,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
 
     for k in range(n_simulation):
         for j in range(1,MAX_ANNEES):
+            nb_mariages = 0
             for i in range(n_a):
                 # probilités de survie (s), décès (d) et démission (dem)
                 s, d, dem = Agents[i].projeter(Table, 1)
@@ -357,17 +347,18 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
 
                 # si l'agent est vivant voir s'il va se marier mais seulement
                 #s'il est non Marié(e)
-                if not Agents[i].getSituationFamille() == 'Marié(e)' :
+                if Agents[i].getSituationFamille() != 'Marié(e)' and s == 1:
                     age = Agents[i].getAge()
                     marie = willMarry(age, Agents[i].getType())
                     if marie == 1 :
                         # a supprimer
                         if j==1:
                             nb_mariages += 1
+
                         if Agents[i].getSexe() == 'Masculin':
-                            rang = Agents[i].ajouterConjoint(age - 5, 'Féminin')
+                            rang = Agents[i].ajouterConjoint(age - 5, 'Féminin', 100+j)
                         else :
-                            rang = Agents[i].ajouterConjoint(age + 5, 'Masculin')
+                            rang = Agents[i].ajouterConjoint(age + 5, 'Masculin', 100+j)
 
                         #mettre à jour la situation de famille
                         Agents[i].setSituationFamille('Marié(e)')
@@ -375,7 +366,7 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
                         # ajouter l'id du nouveau conjoint dans Conjoints_survie et Conjoints_deces
                         Conjoints_survie[(Agents[i].getIdentifiant(), rang)] = [0]*MAX_ANNEES
                         Conjoints_deces[(Agents[i].getIdentifiant(), rang)] = [0]*MAX_ANNEES
-                        Conjoints_survie[(Agents[i].getIdentifiant(), rang)][j] = 1 # le conjoint est vivant lors de son mariage !
+                        Conjoints_survie[(Agents[i].getIdentifiant(), rang)][j] = 1 * n_simulation # le conjoint est vivant lors de son mariage !
 
                 # mise à jour de l'âge de l'agent
                 Agents[i].avancerAge()
@@ -383,14 +374,24 @@ def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNE
 
                 for conj in Agents[i].Conjoints:
                     # probilités de survie (s_c)
-                    s_c = conj.will_survive(Table, 1)
-                    Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())][j] += s_c
-                    Conjoints_deces[(Agents[i].getIdentifiant(), conj.getRang())][j] += (1-s_c)
-                    conj.avancerAge()
+                    if Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())][j-1] > 0:
+                        s_c = conj.will_survive(Table, 1)
+                        Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())][j] += s_c
+                        Conjoints_deces[(Agents[i].getIdentifiant(), conj.getRang())][j] += (1-s_c)
+                        conj.avancerAge()
+
+
+
+
+
+            # a supprimer
+#                print('nombre de nouveaux mariages : ' + str(nb_mariages))
+
         resetAgents()
 
-    # a supprimer
-    print('nombre de nouveaux mariages : ' + str(nb_mariages))
+
+
+
     return {w : [z/n_simulation for z in Agents_survie[w]] for w in Agents_survie}, \
            {w : [z/n_simulation for z in Conjoints_survie[w]] for w in Conjoints_survie}, \
            {w : [z/n_simulation for z in Agents_deces[w]] for w in Agents_deces}, \

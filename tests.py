@@ -39,7 +39,7 @@ with open('AgeDepart.csv') as f:
 
 t1 = time.time()
 
-survie_agents, survie_conjoints, deces_agents, dem_agents, deces_conjoints  = eff.simulerEffectif(agents_0, conjoints_0, enfants_0, act.TV_88_90,10,MAX_ANNEES)
+survie_agents, survie_conjoints, deces_agents, dem_agents, deces_conjoints  = eff.simulerEffectif(agents_0, conjoints_0, enfants_0, act.TV_88_90,1000,MAX_ANNEES)
 t2 = time.time()
 
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
@@ -107,5 +107,62 @@ print(effectifs_conjoints_deces)
 
 #############################################################################################
 
+#%%
+
+effectifs_conjoints_nouveaux =[0]*MAX_ANNEES
+
+for a in survie_conjoints:
+    if a[1] >=101 :
+        effectifs_conjoints_nouveaux = [i + j for i, j in zip(effectifs_conjoints_nouveaux, survie_conjoints[a])]
+
+print(effectifs_conjoints_nouveaux)
+
+
+
 
 #%%
+
+# export survie_conjoints to csv file
+(pd.DataFrame.from_dict(data=survie_conjoints, orient='index').to_csv('survie_conjoints.csv', header=False))
+
+
+
+
+
+
+#%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
