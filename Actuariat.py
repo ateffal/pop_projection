@@ -89,7 +89,14 @@ def sfs_lx(Age, Table):
 #%%
 
 def sfs_nPx(Age, n, Table):
-    return sfs_lx(Age + n, Table) / sfs_lx(Age, Table)
+    l1 = sfs_lx(Age + n, Table)
+    l2 = sfs_lx(Age, Table)
+    if l2 != 0:
+        return sfs_lx(Age + n, Table) / sfs_lx(Age, Table)
+    else:
+        return 0
+        
+    
 
 
 #%%
