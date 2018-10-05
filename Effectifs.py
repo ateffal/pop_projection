@@ -7,8 +7,8 @@ Created on Mon May  7 14:08:56 2018
 #%%
 
 import random
-# import numpy as np
 import pandas as pd
+import Actuariat as act
 
 
 
@@ -74,139 +74,68 @@ def willMarry(Age, typeAgent):
 
 #%%
 
-def simulerEffectif(actives, retirees, widows, conjointsActives, conjointsRetirees, childrenActives, childrenRetirees, orphans, mortalityTable, MAX_YEARS = 50):
+def simulerEffectif(employees, spouses, children, mortalityTable, MAX_YEARS = 50):
     
-    ''' assumes actives, retirees, widows, conjointsActives, conjointsRetirees, childrenActives, childrenRetirees, 
-        and orphans are pandas dataframes with 2 columns, the first column is the id and the second one is the age.
-        conjointsActives and conjointsRetirees have the same id as their conjoints (the active or the retiree). 
-        childrenActives, childrenRetirees and orphans have the same id as their father (the active or the retiree). 
+    ''' assumes employees, spouses and children are pandas dataframes with at least 5 columns :
+        - id   : an unique identifier of the employee
+        - type : active or retired for employees. active, or retired or widow or widower for spouses and children.
+                 for spouses and children, type is the type of the employee taht they are attached to if it's still alive, or widows or widower otherwise
+        - sex
+        - familyStatus : maried, or not maried
+        - age
     '''
     
     # Numbers of each category of population
-    n_a = len(actives) 
-    n_r = len(retirees)
-    n_w = len(widows)
-    n_ca = len(conjointsActives) 
-    n_cr = len(conjointsRetirees)
-    n_cha = len(childrenActives)
-    n_chr = len(childrenRetirees)
-    n_o = len(orphans)
+    n_e = len(employees) 
+    n_s = len(spouses)
+    n_c = len(children)
     
-
-    
-
     # dics where to store survivals : ex : {id:[list of lives, one for each year]}
-    actives_lives = {}
-    retirees_lives = {}
-    widows_lives = {}
-    conjointsActives_lives = {}
-    conjointsRetirees_lives = {}
-    childrenActives_lives = {}
-    childrenRetirees_lives = {}
-    orphans_lives = {}
+    employees_lives = {}
+    spouses_lives = {}
+    children_lives = {}
     
     # dics where to store deaths : ex : {id:[list of lives, one for each year]}
-    actives_deaths = {}
-    retirees_deaths = {}
-    widows_deaths = {}
-    conjointsActives_deaths = {}
-    conjointsRetirees_deaths = {}
-    childrenActives_deaths = {}
-    childrenRetirees_deaths = {}
-    orphans_deaths = {}
+    employees_deaths = {}
+    spouses_deaths = {}
+    children_deaths = {}
     
     # dic where to store demmissions (actives only) : ex : {id:[list of lives, one for each year]}
-    actives_dem = {}
+    employees_dem = {}
     
     # initialisation of dics
-    # lives
-    for i in range(n_a):
-        actives_lives[actives["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_r):
-        retirees_lives[retirees["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_w):
-        widows_lives[widows["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_ca):
-        conjointsActives_lives[conjointsActives["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_cr):
-        conjointsRetirees_lives[conjointsRetirees["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_cha):
-        childrenActives_lives[childrenActives["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_chr):
-        childrenRetirees_lives[childrenRetirees["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    for i in range(n_o):
-        orphans_lives[orphans["id"][i]] = [1] + [0]*(MAX_YEARS-1)
-    # deaths
-    for i in range(n_a):
-        actives_deaths[actives["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_r):
-        retirees_deaths[retirees["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_w):
-        widows_deaths[widows["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_ca):
-        conjointsActives_deaths[conjointsActives["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_cr):
-        conjointsRetirees_deaths[conjointsRetirees["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_cha):
-        childrenActives_deaths[childrenActives["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_chr):
-        childrenRetirees_deaths[childrenRetirees["id"][i]] = [0]*MAX_YEARS
-    for i in range(n_o):
-        orphans_deaths[orphans["id"][i]] = [0]*MAX_YEARS
-    # demissions
-    for i in range(n_a):
-        actives_dem[actives["id"][i]] = [0]*MAX_YEARS
-    
-    
-    
-    
-    for i in range(1,MAX_ANNEES):
-        for j in range(n_a):
-            print("to do for year ", i, " active ", j)
+    for i in range(n_e):
+        employees_lives[employees["id"][i]] = [1] + [0]*(MAX_YEARS-1)
         
-            
+    for i in range(n_s):
+        spouses_lives[spouses["id"][i]] = [1] + [0]*(MAX_YEARS-1)
         
-
-
-
-
-#%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for i in range(n_c):
+        children_lives[children["id"][i]] = [1] + [0]*(MAX_YEARS-1)
+        
+    for i in range(n_e):
+        employees_deaths[employees["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_s):
+        spouses_deaths[spouses["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_c):
+        children_deaths[children["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_e):
+        employees_dem[employees["id"][i]] = [0]*MAX_YEARS
+        
+    
+    # main loop
+    for i in range(1, MAX_YEARS):
+        # employees
+        for j in range(n_e):
+            # calculate age
+            age = employees["age"][j] + i
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            employees_lives[employees["id"][j]][i] = employees_lives[employees["id"][j]][i-1] * survie
+    
+    return  employees_lives
+    
+    
+    
