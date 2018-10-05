@@ -21,7 +21,7 @@ t1 = time.time()
 # nombre maximum d'années de projection
 MAX_ANNEES = 50
 
-print(path)
+
 
 # chargement des données
 employees = pd.read_csv("employees.csv",sep=";", decimal = ",")
