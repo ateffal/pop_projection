@@ -11,7 +11,6 @@ import time
 import Actuariat as act
 
 
-
 #%%
 
 def law_ret1(age, year_emp):
