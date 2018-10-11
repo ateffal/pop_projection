@@ -212,6 +212,21 @@ def sfs_PartiEnRetraite(dDateEngagement, dDateNaissance, dAnnee):
 #%%
 
 
+def retire(age):
+    if age >= 55:
+        return True
+    else:
+        return False
+    
+def isRetired(age):
+    if age > 55:
+        return True
+    else:
+        return False
+    
+    
+
+
 
 
 
