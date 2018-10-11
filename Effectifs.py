@@ -7,6 +7,10 @@ Created on Mon May  7 14:08:56 2018
 #%%
 
 import random
+import pandas as pd
+import Actuariat as act
+import Retraite as ret
+
 
 
 #%%
@@ -38,196 +42,10 @@ def probaMariage(age, typeAgent):
         return 0
 
 
-#%%
-
-class Personne:
-    def __init__(self, identifiant, age, sexe, situationFamille):
-        self.identifiant = identifiant
-        self.Age_0 = age
-        self.Age = age
-        self.Sexe = sexe
-        self.Vivant = 1
-        self.SituationFamille_0 = situationFamille
-        self.SituationFamille = situationFamille
-
-
-    def getAge(self):
-        return self.Age
-
-    def getAge0(self):
-        return self.Age_0
-
-    def getSexe(self):
-        return self.Sexe
-
-    def getIdentifiant(self):
-        return self.identifiant
-
-    def getVivant(self):
-        return self.Vivant
-
-    def getSituationFamille0(self):
-        return self.SituationFamille
-
-    def getSituationFamille(self):
-        return self.SituationFamille
-
-    def decede(self):
-        self.Vivant = 0
-
-    def setVivant(self):
-        self.Vivant = 1
-
-    def setAge(self, age):
-        self.Age = age
-
-    def resetAge(self):
-        self.Age = self.Age_0
-
-    def setSituationFamille(self, sitFam):
-        self.SituationFamille = sitFam
-
-    def resetSituationFamille(self):
-        self.SituationFamille = self.SituationFamille_0
-
-
-    def avancerAge(self):
-        self.Age = self.Age + 1
-
-    def will_survive(self, table, n = 1):
-
-        if self.Vivant == 1 :
-            survie = is_alive(self.getAge() + n , table)
-            if survie == 0:
-                self.decede()
-        else:
-            survie = 0
-
-        #self.Age = self.Age + n
-        return survie
-
-
-
-
-#%%
-
-class Conjoint(Personne):
-    def __init__(self, identifiant, rang, age, sexe, situationFamille):
-        Personne.__init__(self, identifiant, age, sexe, situationFamille)
-        self.Rang = rang
-
-    def getRang(self):
-        return self.Rang
-
-    def getIdentifiant(self):
-        return (self.identifiant, self.Rang)
-
-#%%
-
-class Enfant(Personne):
-    def __init__(self, identifiant, rang, age, sexe):
-        Personne.__init__(self, identifiant, age, sexe, 'Célibataire')
-        self.Rang = rang
-
-    def getRang(self):
-        return self.Rang
-
-    def getIdentifiant(self):
-        return (self.identifiant, self.Rang)
-
-
-#%%
-
-class Agent(Personne):
-
-    def __init__(self,identifiant,age, sexe, situationFamille, type_):
-        Personne.__init__(self, identifiant, age, sexe, situationFamille)
-        self.Conjoints = []
-        self.Conjoints_0 = []
-        self.Enfants = []
-        self.maxRangConjoint = 0
-        self.maxRangConjoint_0 = 0
-        self.maxRangEnfant = 0
-        self.Present = 1
-        self.Type = type_
-
-    def getPresent(self):
-        return self.Present
-
-    def setPresent(self, present = 1):
-        self.Vivant = present
-
-    def getType(self):
-        return self.Type
-
-    def ajouterConjoint_0(self, age, sexe, rang = None):
-        self.maxRangConjoint += 1
-        self.maxRangConjoint_0 += 1
-        if rang == None:
-            rang = self.maxRangConjoint
-
-        self.Conjoints.append(Conjoint(self.identifiant,rang, age, sexe, 'Marié(e)'))
-        self.Conjoints_0.append(Conjoint(self.identifiant,rang, age, sexe, 'Marié(e)'))
-
-        return rang
-
-    def ajouterConjoint(self, age, sexe, rang = None):
-        self.maxRangConjoint += 1
-        if rang == None:
-            rang = self.maxRangConjoint
-
-        self.Conjoints.append(Conjoint(self.identifiant,rang, age, sexe, 'Marié(e)'))
-
-        return rang
-
-    def ajouterEnfant(self, age, sexe, rang = None):
-        self.maxRangEnfant += 1
-        if rang == None:
-            self.Enfants.append(Enfant(self.identifiant,self.maxRangEnfant, age, sexe))
-        else:
-            self.Enfants.append(Enfant(self.identifiant,rang, age, sexe))
-
-    def setVivantConjoints(self):
-        for conj in self.Conjoints:
-            conj.setVivant()
-
-    def resetConjoints(self):
-        self.Conjoints = self.Conjoints_0.copy()
-
-    def resetMaxRang(self):
-        self.maxRangConjoint = self.maxRangConjoint_0
-
-    def projeter(self, table, n = 1):
-        if Personne.getVivant(self) == 0:
-            return (0, 0, 0)
-
-        vivant = Personne.will_survive(self, table, n)
-        if vivant == 0:
-            return (0, 1, 0) # agent decede
-
-        present = is_present(self.Age)
-        if present == 0 :
-            self.setPresent(0)
-            return (0, 0, 1)
-
-        # si l'agent est present on va voir s'il va se marier
-#        marie = willMarry(self.Age)
-#        if marie == 1 :
-#            if self.getSexe() == 'Masculin':
-#                self.ajouterConjoint(self.getAge() - 5, 'Féminin')
-#            else :
-#                self.ajouterConjoint(self.getAge() + 5, 'Masculin')
-
-        # agent present et vivant
-        return (1, 0, 0)
-
 
 #%%
 
 def is_alive(Age, Table):
-    global a_supprimer_1
-    global a_supprimer_2
-
     if Age > 120:
         return 0
 
@@ -255,189 +73,131 @@ def willMarry(Age, typeAgent):
     else:
         return 0
 
-
 #%%
 
-def simulerEffectif(Adherents, Conjoints, Enfants, Table, n_simulation, MAX_ANNEES = 50):
-
-    #a supprimer
-    nb_mariages = 0
-
-    # Nombre d'adhérents, de conjoints et d'enfants
-    n_a = len(Adherents)
-    n_c = len(Conjoints)
-    n_e = len(Enfants)
-
-    # Constructuion des Agents à partir des data frame Adherents, Conjoints et Enfants
-    Agents =[]
-
-    # dic stockant les indices des agents pour pouvoir les retrouver facilement
-    indices_agents = {}
-
-    # Chargements des agents (avec zero conjoints et zeros enfants)
-    for i in range(n_a):
-        agent = Agent(Adherents['Identifiant'][i], Adherents['Age'][i], Adherents['Sexe'][i], Adherents['SituationFamiliale'][i], Adherents['Type'][i])
-        indices_agents[Adherents['Identifiant'][i]] = i
-        Agents.append(agent)
-
-    #Ajout des conjoints
-    for i in range(n_c):
-        if Conjoints['Identifiant'][i] in indices_agents:
-            indice_a = indices_agents[Conjoints['Identifiant'][i]]
-            Agents[indice_a].ajouterConjoint_0(Conjoints['Age'][i], Conjoints['Sexe'][i], Conjoints['Rang'][i])
-        else:
-            print('Conjoint ' + Conjoints['Identifiant'][i] + ' ne correspond à aucun agent.')
-
-#    print('Lenght Conjoints : ' + str(len(Conjoints)))
-
-    #Ajout des enfants
+def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None):
+    
+    ''' assumes employees, spouses and children are pandas dataframes with at least 5 columns :
+        - id   : an unique identifier of the employee
+        - type : active or retired for employees. active, or retired or widow or widower for spouses and children.
+                 for spouses and children, type is the type of the employee taht they are attached to if it's still alive, or widows or widower otherwise
+        - sex
+        - familyStatus : maried, or not maried
+        - age
+        
+        if supplied, law_retirement is a tuple : (a function, list of columns of employees to be passed to this function )
+    '''
+    
+    if law_retirement_ == None:
+        law_retirement = ret.retire
+        cols = ['age']
+    else:
+        law_retirement = law_retirement_[0]
+        cols = law_retirement_[1]
+        
+    
+    # Numbers of each category of population
+    n_e = len(employees) 
+    n_s = len(spouses)
+    n_c = len(children)
+    
+    # dics where to store survivals : ex : {id:[list of lives, one for each year]}
+    employees_proj = {}
+    spouses_proj = {}
+    children_proj = {}
+    
+    
+    # initialisation of dics
     for i in range(n_e):
-        #indice de agent correspondant dans Agents
-        if Enfants['Identifiant'][i] in indices_agents:
-            indice_a = indices_agents[Enfants['Identifiant'][i]]
-            Agents[indice_a].ajouterEnfant(Enfants['Age'][i], Enfants['Sexe'][i], Enfants['Rang'][i])
-#        else:
-#            print('Enfant ' + Enfants['Identifiant'][i] + ' ne correspond à aucun agent.')
-
-
-    # dics pour stocker les probabliytés de survies, décès et démissions : ex : {id:[tableau de survies]}
-    Agents_survie = {}
-    Agents_deces = {}
-    Agents_dem = {}
-    Conjoints_survie = {}
-    Conjoints_deces = {}
-
-    #Enfants_projetes = {}
-
-    # initialisation des dics
-    for i in range(n_a):
-        Agents_survie[Agents[i].getIdentifiant()] = [n_simulation] + [0]*(MAX_ANNEES-1)
-        Agents_deces[Agents[i].getIdentifiant()] = [0] + [0]*(MAX_ANNEES-1)
-        Agents_dem[Agents[i].getIdentifiant()] = [0] + [0]*(MAX_ANNEES-1)
-
-    for i in range(n_a):
-        for conj in Agents[i].Conjoints:
-            Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())] = [n_simulation] + [0]*(MAX_ANNEES-1)
-            Conjoints_deces[(Agents[i].getIdentifiant(), conj.getRang())] = [0] + [0]*(MAX_ANNEES-1)
-
-#    print('Lenght survie_conjoints : ' + str(len(Conjoints_survie)))
-
-    # remise à l'état initial des agents( appelée à la fin de chaque simulation)
-    def resetAgents():
-        for i in range(n_a):
-            Agents[i].setVivant()
-            Agents[i].setPresent()
-            Agents[i].resetAge()
-            #Agents[i].resetSituationFamille()
-            Agents[i].setVivantConjoints()
-            Agents[i].resetMaxRang()
-            for conj in Agents[i].Conjoints:
-                conj.resetAge()
-                #conj.resetSituationFamille()
-
-    for k in range(n_simulation):
-        for j in range(1,MAX_ANNEES):
-            nb_mariages = 0
-            for i in range(n_a):
-                # probilités de survie (s), décès (d) et démission (dem)
-                s, d, dem = Agents[i].projeter(Table, 1)
-                Agents_survie[Agents[i].getIdentifiant()][j] += s
-                Agents_deces[Agents[i].getIdentifiant()][j] += d
-                Agents_dem[Agents[i].getIdentifiant()][j] += dem
-
-                # si l'agent est vivant voir s'il va se marier mais seulement
-                #s'il est non Marié(e)
-                if Agents[i].getSituationFamille() != 'Marié(e)' and s == 1:
-                    age = Agents[i].getAge()
-                    marie = willMarry(age, Agents[i].getType())
-                    if marie == 1 :
-                        # a supprimer
-                        if j==1:
-                            nb_mariages += 1
-
-                        if Agents[i].getSexe() == 'Masculin':
-                            rang = Agents[i].ajouterConjoint(age - 5, 'Féminin', 100+j)
-                        else :
-                            rang = Agents[i].ajouterConjoint(age + 5, 'Masculin', 100+j)
-
-                        #mettre à jour la situation de famille
-                        Agents[i].setSituationFamille('Marié(e)')
-
-                        # ajouter l'id du nouveau conjoint dans Conjoints_survie et Conjoints_deces
-                        Conjoints_survie[(Agents[i].getIdentifiant(), rang)] = [0]*MAX_ANNEES
-                        Conjoints_deces[(Agents[i].getIdentifiant(), rang)] = [0]*MAX_ANNEES
-                        Conjoints_survie[(Agents[i].getIdentifiant(), rang)][j] = 1 * n_simulation # le conjoint est vivant lors de son mariage !
-
-                # mise à jour de l'âge de l'agent
-                Agents[i].avancerAge()
-
-
-                for conj in Agents[i].Conjoints:
-                    # probilités de survie (s_c)
-                    if Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())][j-1] > 0:
-                        s_c = conj.will_survive(Table, 1)
-                        Conjoints_survie[(Agents[i].getIdentifiant(), conj.getRang())][j] += s_c
-                        Conjoints_deces[(Agents[i].getIdentifiant(), conj.getRang())][j] += (1-s_c)
-                        conj.avancerAge()
-
-
-
-
-
-            # a supprimer
-#                print('nombre de nouveaux mariages : ' + str(nb_mariages))
-
-        resetAgents()
-
-
-
-
-    return {w : [z/n_simulation for z in Agents_survie[w]] for w in Agents_survie}, \
-           {w : [z/n_simulation for z in Conjoints_survie[w]] for w in Conjoints_survie}, \
-           {w : [z/n_simulation for z in Agents_deces[w]] for w in Agents_deces}, \
-           {w : [z/n_simulation for z in Agents_dem[w]] for w in Agents_dem}, \
-           {w : [z/n_simulation for z in Conjoints_deces[w]] for w in Conjoints_deces}
-
-
-
-
-#%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        if employees["type"][i] == "active":
+            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
+                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['active'] + ['']*(MAX_YEARS-1)}  
+        else:
+            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
+                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['retired']*MAX_YEARS}  
+            
+    
+    for i in range(n_s):
+        spouses_proj[spouses["id"][i]] = {'data':dict(zip(spouses.columns[1:],list(spouses.iloc[i])[1:])), 'exist':1, 
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS}
+        
+    for i in range(n_c):
+        children_proj[children["id"][i]] = {'data':dict(zip(children.columns[1:],list(children.iloc[i])[1:])), 'exist':1, 
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS}
+        
+    # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
+    new_retired = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
+
+    def add_new_employee(id, data, entrance, type_):
+        employees_proj[id] = {'data':data, 'exist':1, 'entrance':entrance, 'lives':[0]*MAX_YEARS, 
+                'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['']*MAX_YEARS}
+        employees_proj[id]['lives'][entrance] = 1
+        employees_proj[id]['type'][entrance] = type_
+        
+        
+        
+    
+    # main loop
+    for i in range(1, MAX_YEARS):
+        # employees
+        n_retired = 0
+        n_death = 0
+        n_resignation = 0
+           
+        for id, employee in employees_proj.items():
+               
+            #before doing anything, check if employee retired
+            # calculate age
+            # age = employee["data"]['age'] + i
+            
+            #update age of employee
+            employee["data"]['age'] = employee["data"]['age'] + 1
+            age = employee["data"]['age']
+            
+            #probability of surviving
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            
+            #probability of dying
+            death = act.sfs_nQx(age,1, mortalityTable)
+            
+            #probability of quitting for actives only
+            if employee["type"][i-1] == "active":
+                resignation = turnover(age)
+            else:
+                resignation = 0
+               
+            # if the employee is active check if he will retire
+            if employee["type"][i-1] == "active":
+                args_ = tuple([employee["data"][z] for z in cols])
+                #print(args_)
+                
+                if law_retirement(*args_):
+                    #update number of retired
+                    n_retired += 1
+                    new_retired[i] = new_retired[i] + [id]
+                    
+                    #update type
+                    employee["type"][i] = "retired"
+                    
+                    #update lives
+                    employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
+                    
+                    #update deaths
+                    employee["deaths"][i] = employee["lives"][i-1] * death
+                    
+                    
+                    #if just retired we are done
+                    continue
+      
+            #type remains the same as last year
+            employee["type"][i] = employee["type"][i-1]
+            employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
+            employee["deaths"][i] = employee["lives"][i-1] * death
+            employee["res"][i] = resignation
+        
+        print(n_retired)   
+    
+    return  employees_proj, spouses_proj, children_proj, new_retired
+    
+    
+    
