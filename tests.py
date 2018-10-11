@@ -25,6 +25,27 @@ def law_ret1(age, year_emp):
             return True
         else:
             return False
+        
+        
+def law_ret2(age):
+    if age >= 55:
+        return True
+    else:
+        return False
+    
+
+def law_ret3(age, sexe):
+    if sexe == 'female':
+        if age >= 55:
+            return True
+        else:
+            return False
+    if sexe == 'male':
+        if age >= 60:
+            return True
+        else:
+            return False 
+
     
     
     
@@ -49,7 +70,7 @@ print("children : ", len(children))
 print(children.head(5))
 
 
-numbers_ = eff.simulerEffectif(employees, spouses, spouses, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']))
+numbers_ = eff.simulerEffectif(employees, spouses, spouses, 'TV 88-90', MAX_ANNEES, (law_ret3, ['age', 'sexe']))
 
 
 # number of actives per year
@@ -72,7 +93,8 @@ for i in range(MAX_ANNEES):
         effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
         
 
-print("Effectifs des actifs : ", effectif_actifs)
+print("Effectifs des actifs : ")
+print(effectif_actifs)
 print("---------------------------------------------------------------")
 print("Effectifs des retraites : ",effectif_retraites)
 print("---------------------------------------------------------------")
