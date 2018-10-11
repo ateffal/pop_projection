@@ -96,7 +96,6 @@ def sfs_nPx(Age, n, Table):
     else:
         return 0
 
-
 #%%
 
 def sfs_nQx(Age, n, Table):

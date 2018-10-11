@@ -9,7 +9,10 @@ Created on Mon May  7 14:08:56 2018
 import random
 import pandas as pd
 import Actuariat as act
+<<<<<<< HEAD
 import Retraite as ret
+=======
+>>>>>>> refs/remotes/origin/probabilistic
 
 
 
@@ -75,6 +78,7 @@ def willMarry(Age, typeAgent):
 
 #%%
 
+<<<<<<< HEAD
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None):
     
     ''' assumes employees, spouses and children are pandas dataframes with at least 5 columns :
@@ -106,9 +110,40 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     spouses_proj = {}
     children_proj = {}
     
+=======
+def simulerEffectif(employees, spouses, children, mortalityTable, MAX_YEARS = 50):
+    
+    ''' assumes employees, spouses and children are pandas dataframes with at least 5 columns :
+        - id   : an unique identifier of the employee
+        - type : active or retired for employees. active, or retired or widow or widower for spouses and children.
+                 for spouses and children, type is the type of the employee taht they are attached to if it's still alive, or widows or widower otherwise
+        - sex
+        - familyStatus : maried, or not maried
+        - age
+    '''
+    
+    # Numbers of each category of population
+    n_e = len(employees) 
+    n_s = len(spouses)
+    n_c = len(children)
+    
+    # dics where to store survivals : ex : {id:[list of lives, one for each year]}
+    employees_lives = {}
+    spouses_lives = {}
+    children_lives = {}
+    
+    # dics where to store deaths : ex : {id:[list of lives, one for each year]}
+    employees_deaths = {}
+    spouses_deaths = {}
+    children_deaths = {}
+    
+    # dic where to store demmissions (actives only) : ex : {id:[list of lives, one for each year]}
+    employees_dem = {}
+>>>>>>> refs/remotes/origin/probabilistic
     
     # initialisation of dics
     for i in range(n_e):
+<<<<<<< HEAD
         if employees["type"][i] == "active":
             employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
                 'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['active'] + ['']*(MAX_YEARS-1)}  
@@ -198,6 +233,39 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         print(n_retired)   
     
     return  employees_proj, spouses_proj, children_proj, new_retired
+=======
+        employees_lives[employees["id"][i]] = [1] + [0]*(MAX_YEARS-1)
+        
+    for i in range(n_s):
+        spouses_lives[spouses["id"][i]] = [1] + [0]*(MAX_YEARS-1)
+        
+    for i in range(n_c):
+        children_lives[children["id"][i]] = [1] + [0]*(MAX_YEARS-1)
+        
+    for i in range(n_e):
+        employees_deaths[employees["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_s):
+        spouses_deaths[spouses["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_c):
+        children_deaths[children["id"][i]] = [0]*MAX_YEARS
+        
+    for i in range(n_e):
+        employees_dem[employees["id"][i]] = [0]*MAX_YEARS
+        
+    
+    # main loop
+    for i in range(1, MAX_YEARS):
+        # employees
+        for j in range(n_e):
+            # calculate age
+            age = employees["age"][j] + i
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            employees_lives[employees["id"][j]][i] = employees_lives[employees["id"][j]][i-1] * survie
+    
+    return  employees_lives
+>>>>>>> refs/remotes/origin/probabilistic
     
     
     

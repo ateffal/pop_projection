@@ -13,6 +13,7 @@ import Actuariat as act
 
 #%%
 
+
 def law_ret1(age, year_emp):
     if year_emp < 2002:
         if age >= 55:
@@ -115,5 +116,32 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 #%%
 
 
+=======
+################################################# Code pour les tests ############################################
+
+
+t1 = time.time()
+
+
+# nombre maximum d'années de projection
+MAX_ANNEES = 50
+
+
+
+# chargement des données
+employees = pd.read_csv("employees.csv",sep=";", decimal = ",")
+spouses = pd.read_csv("conjoints.csv",sep=";", decimal = ",")
+
+test = eff.simulerEffectif(employees, spouses, spouses, 'TV 88-90', 100)
+
+for t in test :
+    print(test[t])
+
+t2 = time.time()
+print('Durée de calcul (minutes) : ', (t2-t1)/60)
+
+
+#%%
+>>>>>>> refs/remotes/origin/probabilistic
 
 
