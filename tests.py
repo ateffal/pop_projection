@@ -49,7 +49,7 @@ def law_ret3(age, sexe):
     
 
 ################################################# Code pour les tests ############################################
-path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\"
+path ="C:\\Users\\TEFFAL AMINE\\Application FS\\Python\\pop_projection\\"
 t1 = time.time()
 
 # nombre maximum d'années de projection
@@ -101,44 +101,11 @@ print("---------------------------------------------------------------")
 print("Effectifs des décès des actifs : ",effectif_deces_actifs)
 print("---------------------------------------------------------------")
 print("Effectifs des décès des retraités : ",effectif_deces_retraites)
-
-# for z in numbers_[3]:
-#     print("Year : ",z)
-#     print(len(numbers_[3][z]))
     
 print([len(numbers_[3][z]) for z in numbers_[3]])
 t2 = time.time()
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
-
-#%%
-
-
-################################################# Code pour les tests ############################################
-
-
-t1 = time.time()
-
-
-# nombre maximum d'années de projection
-MAX_ANNEES = 50
-
-
-
-# chargement des données
-employees = pd.read_csv("employees.csv",sep=";", decimal = ",")
-spouses = pd.read_csv("conjoints.csv",sep=";", decimal = ",")
-
-test = eff.simulerEffectif(employees, spouses, spouses, 'TV 88-90', 100)
-
-for t in test :
-    print(test[t])
-
-t2 = time.time()
-print('Durée de calcul (minutes) : ', (t2-t1)/60)
-
-
-#%%
 
 
 
