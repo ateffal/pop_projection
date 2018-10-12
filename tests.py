@@ -116,7 +116,6 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 #%%
 
 
-=======
 ################################################# Code pour les tests ############################################
 
 
@@ -142,6 +141,6 @@ print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
 
 #%%
->>>>>>> refs/remotes/origin/probabilistic
+
 
 
