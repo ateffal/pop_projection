@@ -47,9 +47,7 @@ def law_ret3(age, sexe):
             return False 
 
     
-    
-    
-    
+
 ################################################# Code pour les tests ############################################
 path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\"
 t1 = time.time()
