@@ -9,10 +9,12 @@ import Effectifs as eff
 import pandas as pd
 import time
 import Actuariat as act
+from sqlalchemy.sql.expression import false
+
+
 
 
 #%%
-
 
 def law_ret1(age, year_emp):
     if year_emp < 2002:
@@ -47,9 +49,11 @@ def law_ret3(age, sexe):
             return False 
 
     
-
+    
+    
+    
 ################################################# Code pour les tests ############################################
-path ="C:\\Users\\TEFFAL AMINE\\Application FS\\Python\\pop_projection\\"
+path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\"
 t1 = time.time()
 
 # nombre maximum d'années de projection
@@ -68,15 +72,30 @@ print("children : ", len(children))
 print(children.head(5))
 
 
-numbers_ = eff.simulerEffectif(employees, spouses, spouses, 'TV 88-90', MAX_ANNEES, (law_ret3, ['age', 'sexe']))
+numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']))
 
 
 # number of actives per year
 effectif_actifs = [0]*MAX_ANNEES
+effectif_conjoints_actifs = [0]*MAX_ANNEES
+
+# number of retired per year
 effectif_retraites = [0]*MAX_ANNEES
+effectif_conjoints_retraites = [0]*MAX_ANNEES
+
+# number of quitters per year
 effectif_demissions = [0]*MAX_ANNEES
+
+#number of dying actives
 effectif_deces_actifs = [0]*MAX_ANNEES
+effectif_deces_conjoints_actifs = [0]*MAX_ANNEES
+
+#number of dying retired
 effectif_deces_retraites = [0]*MAX_ANNEES
+effectif_deces_conjoints_retraites = [0]*MAX_ANNEES
+
+#number of living widows
+effectif_ayants_cause = [0]*MAX_ANNEES
 
 for i in range(MAX_ANNEES):
     for a in numbers_[0].values():
@@ -90,21 +109,67 @@ for i in range(MAX_ANNEES):
         
         effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
         
-
-print("Effectifs des actifs : ")
-print(effectif_actifs)
-print("---------------------------------------------------------------")
-print("Effectifs des retraites : ",effectif_retraites)
-print("---------------------------------------------------------------")
-print("Effectifs des démissions : ",effectif_demissions)
-print("---------------------------------------------------------------")
-print("Effectifs des décès des actifs : ",effectif_deces_actifs)
-print("---------------------------------------------------------------")
-print("Effectifs des décès des retraités : ",effectif_deces_retraites)
     
-print([len(numbers_[3][z]) for z in numbers_[3]])
+    for a in numbers_[1].values():
+        if a['type'][i] == 'active':
+            effectif_conjoints_actifs[i] = effectif_conjoints_actifs[i] + a['lives'][i]
+            effectif_deces_conjoints_actifs[i] = effectif_deces_conjoints_actifs[i] + a['deaths'][i]
+            
+        if a['type'][i] == 'retired':
+            effectif_conjoints_retraites[i] = effectif_conjoints_retraites[i] + a['lives'][i]
+            effectif_deces_conjoints_retraites[i] = effectif_deces_conjoints_retraites[i] + a['deaths'][i]
+            
+        if a['type'][i] == 'widow':
+            effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
+            
+            
+#construct DataFrame of projected numbers
+totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
+totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
+
+Data = {'Year':list(range(MAX_ANNEES)),'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
+        'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
+        'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses}
+
+Effectifs = pd.DataFrame(data=Data, 
+            columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause', 
+                     'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses' ])
+
+
+print(Effectifs.head(10))
+
+Effectifs.to_csv('Effectifs_python.csv', sep = ';', index=False, decimal=',')
+            
+
+# print("Number of survivals  : ")
+# print("Active Employees : ", effectif_actifs)
+# print("Active Spouses : ", effectif_conjoints_actifs)
+# print("Retired Employees : ", effectif_retraites)
+# print("Retired Spouses : ", effectif_conjoints_retraites)
+# 
+# print("---------------------------------------------------------------")
+# 
+# print("Number of deaths  : ")
+# print("Active Employees : ", effectif_deces_actifs)
+# print("Active Spouses : ", effectif_deces_conjoints_actifs)
+# print("Retired Employees : ", effectif_deces_retraites)
+# print("Retired Spouses : ", effectif_deces_conjoints_retraites)
+# 
+# 
+# print("---------------------------------------------------------------")
+# print("Number of widows  : ", effectif_ayants_cause)
+
+
+
+
+
+
+
 t2 = time.time()
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
+
+
+#%%
 
 
 

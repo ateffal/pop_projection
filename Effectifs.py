@@ -10,6 +10,7 @@ import random
 import pandas as pd
 import Actuariat as act
 import Retraite as ret
+from nbconvert.exporters.base import export
 
 
 
@@ -33,9 +34,9 @@ def probaMariage(age, typeAgent):
     Return the probability of getting maried  during the following year at a given age
 
     """
-    if typeAgent=='Actif':
-        if age >= 35 and age <= 54:
-            return 0.03
+    if typeAgent=='active':
+        if age >= 25 and age <= 54:
+            return 0.0950338528553041
         else :
             return 0
     else:
@@ -108,6 +109,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     
     
     # initialisation of dics
+    #dic of employees. For employees, keys are id (first column)
     for i in range(n_e):
         if employees["type"][i] == "active":
             employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
@@ -116,13 +118,17 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
                 'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['retired']*MAX_YEARS}  
             
-    
+    #dic of spouses. For spouses, keys are tuples (id, rang) : (first column, second column)
     for i in range(n_s):
-        spouses_proj[spouses["id"][i]] = {'data':dict(zip(spouses.columns[1:],list(spouses.iloc[i])[1:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS}
+        spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
         
+        
+    print('lenth of spouses_proj at begining : ', len(spouses_proj))
+    
+    #dic of children. For children, keys are tuples (id, rang) : (first column, second column)
     for i in range(n_c):
-        children_proj[children["id"][i]] = {'data':dict(zip(children.columns[1:],list(children.iloc[i])[1:])), 'exist':1, 
+        children_proj[(children["id"][i], children["rang"][i])] = {'data':dict(zip(children.columns[2:],list(children.iloc[i])[2:])), 'exist':1, 
             'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS}
         
     # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
@@ -134,6 +140,33 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         employees_proj[id]['lives'][entrance] = 1
         employees_proj[id]['type'][entrance] = type_
         
+    def add_new_spouse(employee_id, year_):
+        #global employees_proj
+        #global spouses_proj
+        
+        # sex
+        if employees_proj[employee_id]["data"]["sex"] == 'male':
+            sex_temp = 'female'
+        else:
+            sex_temp = 'male'
+            
+        #live employee (employee will marry only if still alive)
+        live_emp = employees_proj[employee_id]["lives"][year_]
+        
+        #age
+        if sex_temp == 'female':
+            age_temp = employees_proj[employee_id]["data"]["age"] - 5 
+        else:
+            age_temp = employees_proj[employee_id]["data"]["age"] + 5
+        
+        #type
+        type_temp = employees_proj[employee_id]["type"][i]
+        
+        spouses_proj[(employee_id, 1)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'married'])), 'exist':1, 
+            'entrance':(year_+1), 'lives':[0] * year_ + [live_emp] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 
+            'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+        
+        #print(spouses_proj[(employee_id, 1)])
         
         
     
@@ -143,13 +176,11 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         n_retired = 0
         n_death = 0
         n_resignation = 0
-           
+        n_marriage = 0
+        
+        #projection of employees
         for id, employee in employees_proj.items():
                
-            #before doing anything, check if employee retired
-            # calculate age
-            # age = employee["data"]['age'] + i
-            
             #update age of employee
             employee["data"]['age'] = employee["data"]['age'] + 1
             age = employee["data"]['age']
@@ -191,12 +222,68 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
       
             #type remains the same as last year
             employee["type"][i] = employee["type"][i-1]
+            
+            #update lives
             employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
+            
+            #update deaths
             employee["deaths"][i] = employee["lives"][i-1] * death
+            
+            #update res
             employee["res"][i] = resignation
-        
-        #print(n_retired)   
+            
+            #handling mariage
+            if employee["data"]["familyStatus"] == "not married":
+                if willMarry(age, employee["type"][i]):
+                    employee["data"]["familyStatus"] = "married"
+                    n_marriage += 1
+                    # Add new spouse
+                    add_new_spouse(id, i)
+            
+            
+        #projection of spouses
+        for id, spouse in spouses_proj.items():
+            
+            # if new spouse continue (treate next year)
+            if spouse['entrance'] > i:
+                continue
+            
+            #update age of spouses
+            spouse["data"]['age'] = spouse["data"]['age'] + 1
+            age = spouse["data"]['age']
+            
+            #probability of surviving
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            
+            #probability of dying
+            death = act.sfs_nQx(age,1, mortalityTable)
+            
+            # the type of spouse is that of his related employee (but only if not widow)
+            if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
+                spouse["type"][i] = employees_proj[id[0]]["type"][i]
+            else:
+                spouse["type"][i] = "widow"
+            
+            #probability of quitting (probability that the related employee will quit
+            if spouse["type"][i] == "active":
+                resignation = employees_proj[id[0]]['res'][i]
+            else:
+                resignation = 0
+           
+            #update lives
+            spouse["lives"][i] = spouse["lives"][i-1] * survie * (1-resignation)
+            
+            #update deaths
+            spouse["deaths"][i] = spouse["lives"][i-1] * death
+            
+            
+        #print(n_retired)
+        #print("mariages de l'annee : ", n_marriage)
     
+#     print('lenth of spouses_proj at the end : ', len(spouses_proj))
+#     for s in spouses_proj:
+#         print(spouses_proj[s])
+        
     return  employees_proj, spouses_proj, children_proj, new_retired
     
     
