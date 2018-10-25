@@ -74,7 +74,6 @@ print(children.head(5))
 
 numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']))
 
-
 # number of actives per year
 effectif_actifs = [0]*MAX_ANNEES
 effectif_conjoints_actifs = [0]*MAX_ANNEES
@@ -139,33 +138,40 @@ Effectifs = pd.DataFrame(data=Data,
 print(Effectifs.head(10))
 
 Effectifs.to_csv('Effectifs_python.csv', sep = ';', index=False, decimal=',')
-            
-
-# print("Number of survivals  : ")
-# print("Active Employees : ", effectif_actifs)
-# print("Active Spouses : ", effectif_conjoints_actifs)
-# print("Retired Employees : ", effectif_retraites)
-# print("Retired Spouses : ", effectif_conjoints_retraites)
-# 
-# print("---------------------------------------------------------------")
-# 
-# print("Number of deaths  : ")
-# print("Active Employees : ", effectif_deces_actifs)
-# print("Active Spouses : ", effectif_deces_conjoints_actifs)
-# print("Retired Employees : ", effectif_deces_retraites)
-# print("Retired Spouses : ", effectif_deces_conjoints_retraites)
-# 
-# 
-# print("---------------------------------------------------------------")
-# print("Number of widows  : ", effectif_ayants_cause)
 
 
+
+#construct DataFrame of projected numbers living the pop : deaths, resignations
+totalLiving = [sum(x) for x in zip(effectif_deces_actifs, effectif_demissions, effectif_deces_retraites,effectif_deces_conjoints_actifs, effectif_deces_conjoints_retraites )]
+
+
+Data = {'Year':list(range(MAX_ANNEES)),'effectif_deces_actifs' : effectif_deces_actifs, 'effectif_demissions' : effectif_demissions, 
+        'effectif_deces_retraites' : effectif_deces_retraites, 'effectif_deces_conjoints_actifs' : effectif_deces_conjoints_actifs, 
+        'effectif_deces_conjoints_retraites' : effectif_deces_conjoints_retraites, 'Total Living' : totalLiving}
+
+Living = pd.DataFrame(data=Data, 
+            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'effectif_deces_retraites' , 'effectif_deces_conjoints_actifs', 
+                     'effectif_deces_conjoints_retraites', 'Total Living'])
+
+
+print(Living.head(10))
+
+Living.to_csv('Sortants_python.csv', sep = ';', index=False, decimal=',')
+
+
+#export projected employees
+pd.DataFrame.from_dict(numbers_[0]).to_csv('employees_proj.csv', sep = ';', index=False, decimal=',')
+
+#export projected spouses
+pd.DataFrame.from_dict(numbers_[1]).to_csv('spouses_proj.csv', sep = ';', index=False, decimal=',')
 
 
 
 
 
 t2 = time.time()
+print("Début :", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(t1)))
+print("Fin :", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(t2)))
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
 
 
