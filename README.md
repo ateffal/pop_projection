@@ -1,12 +1,10 @@
 # pop_projection
 
 Projection of a population consisting of :
-- actives
-- retirees
-- their conjoints
-- thier children
-- widows
-- orphans
+- employees (actives and retirees)
+- their spouses
+- thier childrens
+
 
 Given such population at year 0, we compute, for each following year (year 1, year 2, ..., year 100, and at the end of that year), the number of individuals, that survived, died and quit the company (actives only)  and those that retired (actives only). In addition to that, new children, new conjoints, and new actives are also generated using given laws.
 
