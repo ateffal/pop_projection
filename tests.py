@@ -16,21 +16,23 @@ from sqlalchemy.sql.expression import false
 
 #%%
 
+################# laws 
+
 def law_ret1(age, year_emp):
     if year_emp < 2002:
-        if age >= 55:
+        if age+1 >= 55:
             return True
         else:
             return False
     if year_emp >= 2002:
-        if age >= 60:
+        if age+1 >= 60:
             return True
         else:
             return False
         
         
 def law_ret2(age):
-    if age >= 55:
+    if age+1 >= 55:
         return True
     else:
         return False
@@ -38,12 +40,12 @@ def law_ret2(age):
 
 def law_ret3(age, sexe):
     if sexe == 'female':
-        if age >= 55:
+        if age+1 >= 55:
             return True
         else:
             return False
     if sexe == 'male':
-        if age >= 60:
+        if age+1 >= 60:
             return True
         else:
             return False 
@@ -51,18 +53,46 @@ def law_ret3(age, sexe):
 
 
 def law_resignation_1(age, sexe):
-    if age >= 50 :
+
+    if age+1 >= 50 :
         return 0
     if sexe == 'female':
-        if age <= 30:
+        if age+1 <= 30:
             return 0.02
         else:
             return 0.01
     if sexe == 'male':
-        if age <= 30:
+        if age+1 <= 30:
             return 0.02
         else:
             return 0.01
+    
+
+
+
+def law_mar1(age, sexe, typeAgent):
+    """
+    Return the probability of getting maried  during the following year at a given age for a given sex
+
+    """
+    if sexe == 'male':
+        if typeAgent=='active':
+            if age >= 25 and age <= 54:
+                return 0.095
+            else :
+                return 0
+        else:
+            return 0
+    
+    if sexe == 'female':
+        if typeAgent=='active':
+            if age >= 25 and age <= 54:
+                return 0.15
+            else :
+                return 0
+        else:
+            return 0
+    
     
     
     
@@ -86,15 +116,17 @@ print("children : ", len(children))
 print(children.head(5))
 
 
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), (law_resignation_1, ['age', 'sex']))
+numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']))
 
 # number of actives per year
 effectif_actifs = [0]*MAX_ANNEES
 effectif_conjoints_actifs = [0]*MAX_ANNEES
+effectif_enfants_actifs = [0]*MAX_ANNEES
 
 # number of retired per year
 effectif_retraites = [0]*MAX_ANNEES
 effectif_conjoints_retraites = [0]*MAX_ANNEES
+effectif_enfants_retraites = [0]*MAX_ANNEES
 
 # number of quitters per year
 effectif_demissions = [0]*MAX_ANNEES
@@ -102,13 +134,16 @@ effectif_demissions = [0]*MAX_ANNEES
 #number of dying actives
 effectif_deces_actifs = [0]*MAX_ANNEES
 effectif_deces_conjoints_actifs = [0]*MAX_ANNEES
+effectif_deces_enfants_actifs = [0]*MAX_ANNEES
 
 #number of dying retired
 effectif_deces_retraites = [0]*MAX_ANNEES
 effectif_deces_conjoints_retraites = [0]*MAX_ANNEES
+effectif_deces_enfants_retraites = [0]*MAX_ANNEES
 
 #number of living widows
 effectif_ayants_cause = [0]*MAX_ANNEES
+
 
 for i in range(MAX_ANNEES):
     for a in numbers_[0].values():
@@ -136,17 +171,33 @@ for i in range(MAX_ANNEES):
             effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
             
             
+    for a in numbers_[2].values():
+        if a['type'][i] == 'active':
+            effectif_enfants_actifs[i] = effectif_enfants_actifs[i] + a['lives'][i]
+            effectif_deces_enfants_actifs[i] = effectif_deces_enfants_actifs[i] + a['deaths'][i]
+            
+        if a['type'][i] == 'retired':
+            effectif_enfants_retraites[i] = effectif_enfants_retraites[i] + a['lives'][i]
+            effectif_deces_enfants_retraites[i] = effectif_deces_enfants_retraites[i] + a['deaths'][i]
+            
+        
+            
+    
+            
+            
 #construct DataFrame of projected numbers
 totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
 totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
+totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites)]
 
 Data = {'Year':list(range(MAX_ANNEES)),'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
         'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
-        'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses}
+        'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
+        'effectif_enfants_retraites' : effectif_enfants_retraites, 'Total Children' : totalChildren}
 
 Effectifs = pd.DataFrame(data=Data, 
             columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause', 
-                     'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses' ])
+                     'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 'effectif_enfants_retraites', 'Total Children' ])
 
 
 print(Effectifs.head(10))
@@ -179,6 +230,12 @@ pd.DataFrame.from_dict(numbers_[0]).to_csv('employees_proj.csv', sep = ';', inde
 #export projected spouses
 pd.DataFrame.from_dict(numbers_[1]).to_csv('spouses_proj.csv', sep = ';', index=False, decimal=',')
 
+#export projected children
+pd.DataFrame.from_dict(numbers_[2]).to_csv('children_proj.csv', sep = ';', index=False, decimal=',')
+
+#export projected new retiree
+#pd.DataFrame.from_dict(numbers_[3]).to_csv('new_retired.csv', sep = ';', index=False, decimal=',')
+print(numbers_[4])
 
 
 
