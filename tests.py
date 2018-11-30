@@ -94,10 +94,24 @@ def law_mar1(age, sexe, typeAgent):
             return 0
     
     
+def law_replacement1(departures_, year_):
     
+    '''
+        assumes departures_ is a dic storing number of departures by group of the year year_
+        returns a list of dics having keys : sex, age, number and group
+        
+    '''
+    new_employees = []
+    for g in departures_:
+        temp = {'sex':'male', 'age' : 30, 'number':departures_[g],'group':g}
+        new_employees.append(temp)
+    
+    return new_employees
+
+
     
 ################################################# Code pour les tests ############################################
-path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\"
+path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\data\\"
 t1 = time.time()
 
 # nombre maximum d'années de projection
@@ -116,7 +130,8 @@ print("children : ", len(children))
 print(children.head(5))
 
 
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']))
+numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), 
+                    (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']), law_replacement_ = law_replacement1)
 
 # number of actives per year
 effectif_actifs = [0]*MAX_ANNEES
