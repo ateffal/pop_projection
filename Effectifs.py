@@ -485,13 +485,14 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         # if law_replacement = None, replacement of departures 50% males, 50% females age 23 in each group
         if law_replacement_ == None:
             for g in departures:
-                add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, 0.5 * departures[g],g)
-                add_new_employee('new_employee_year_males_' + str(i), i, 'female', 23, 0.5 * departures[g],g)
+                add_new_employee('new_employee_year_males_' + str(i) + '_group_' + str(g) + '_male', i, 'male', 23, 0.5 * departures[g],g)
+                add_new_employee('new_employee_year_males_' + str(i)  + '_group_'+ str(g) + '_female', i, 'female', 23, 0.5 * departures[g],g)
         else:
             new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : sex, age, number and group
             for ne in new_emp:
-                add_new_employee('new_employee_year_males_' + str(i), i, ne['sex'], ne['age'], ne['number'],ne['group'])
+                add_new_employee('new_employee_year_males_' + str(i) + '_group_' + str(ne['group']), i, ne['sex'], ne['age'], ne['number'],ne['group']) 
         
+        #add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, total_departures,1)
         
     return  employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
     

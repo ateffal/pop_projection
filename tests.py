@@ -11,9 +11,6 @@ import time
 import Actuariat as act
 from sqlalchemy.sql.expression import false
 
-
-
-
 #%%
 
 ################# laws 
@@ -102,6 +99,7 @@ def law_replacement1(departures_, year_):
         
     '''
     new_employees = []
+
     for g in departures_:
         temp = {'sex':'male', 'age' : 30, 'number':departures_[g],'group':g}
         new_employees.append(temp)
@@ -111,7 +109,7 @@ def law_replacement1(departures_, year_):
 
     
 ################################################# Code pour les tests ############################################
-path ="D:\\Shared\\a.teffal\\Application_Simulation_FS\\Application_Python\\data\\"
+path ="C:\\Users\\TEFFAL AMINE\\Application FS\\Python\\pop_projection\\"
 t1 = time.time()
 
 # nombre maximum d'années de projection
@@ -131,7 +129,7 @@ print(children.head(5))
 
 
 numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), 
-                    (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']), law_replacement_ = law_replacement1)
+                    (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']), law_replacement_ = None)
 
 # number of actives per year
 effectif_actifs = [0]*MAX_ANNEES
