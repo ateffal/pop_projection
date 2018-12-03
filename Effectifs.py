@@ -15,6 +15,7 @@ from _ast import arg
 
 
 
+
 #%%
 def turnover(age) :
     """
@@ -479,14 +480,15 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         total_departures = n_retired + n_resignation + n_death
         #print('Year : ',i,'total_departures : ', total_departures)
         # departures by group
-        print('Year : ',i,' Departures by group : ', departures)
+        #print('Year : ',i,' Departures by group : ', departures)
         
         
         # if law_replacement = None, replacement of departures 50% males, 50% females age 23 in each group
         if law_replacement_ == None:
-            for g in departures:
-                add_new_employee('new_employee_year_males_' + str(i) + '_group_' + str(g) + '_male', i, 'male', 23, 0.5 * departures[g],g)
-                add_new_employee('new_employee_year_males_' + str(i)  + '_group_'+ str(g) + '_female', i, 'female', 23, 0.5 * departures[g],g)
+#             for g in departures:
+#                 add_new_employee('new_employee_year_males_' + str(i) + '_group_' + str(g) + '_male', i, 'male', 23, 0.5 * departures[g],g)
+#                 add_new_employee('new_employee_year_males_' + str(i)  + '_group_'+ str(g) + '_female', i, 'female', 23, 0.5 * departures[g],g)
+            x = 0
         else:
             new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : sex, age, number and group
             for ne in new_emp:
@@ -497,10 +499,138 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     return  employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
     
     
+def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
+    """ 
+        Assumes parameters are of the form of those returned by simulerEffectif
+  
+        Parameters: 
+            employees_proj_ (dic): a dic containing projected employees
+            spouses_proj_ (dic): a dic containing projected spouses
+            children_proj_ (dic): a dic containing projected children
+          
+        Returns: 
+            DataFrame: A DataFrame containing global numbers by year : 
+                       Actives, Retirees, Wives, Widows, Children 
+    """
+    
+    
+    # number of actives per year
+    effectif_actifs = [0] * MAX_YEARS
+    effectif_conjoints_actifs = [0] * MAX_YEARS
+    effectif_enfants_actifs = [0] * MAX_YEARS
+
+    # number of retired per year
+    effectif_retraites = [0] * MAX_YEARS
+    effectif_conjoints_retraites = [0] * MAX_YEARS
+    effectif_enfants_retraites = [0] * MAX_YEARS
+
+    # number of quitters per year
+    effectif_demissions = [0] * MAX_YEARS
+
+    # number of dying actives
+    effectif_deces_actifs = [0] * MAX_YEARS
+    effectif_deces_conjoints_actifs = [0] * MAX_YEARS
+    effectif_deces_enfants_actifs = [0] * MAX_YEARS
+    
+    # number of dying retired
+    effectif_deces_retraites = [0] * MAX_YEARS
+    effectif_deces_conjoints_retraites = [0] * MAX_YEARS
+    effectif_deces_enfants_retraites = [0] * MAX_YEARS
+
+    # number of living widows
+    effectif_ayants_cause = [0] * MAX_YEARS
+
+    for i in range(MAX_YEARS):
+        for a in employees_proj_.values():
+            if a['type'][i] == 'active':
+                effectif_actifs[i] = effectif_actifs[i] + a['lives'][i]
+                effectif_deces_actifs[i] = effectif_deces_actifs[i] + a['deaths'][i]
+            else:
+                effectif_retraites[i] = effectif_retraites[i] + a['lives'][i]
+                effectif_deces_retraites[i] = effectif_deces_retraites[i] + a['deaths'][i]
+            
+            effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
+        
+        for a in spouses_proj_.values():
+            if a['type'][i] == 'active':
+                effectif_conjoints_actifs[i] = effectif_conjoints_actifs[i] + a['lives'][i]
+                effectif_deces_conjoints_actifs[i] = effectif_deces_conjoints_actifs[i] + a['deaths'][i]
+                
+            if a['type'][i] == 'retired':
+                effectif_conjoints_retraites[i] = effectif_conjoints_retraites[i] + a['lives'][i]
+                effectif_deces_conjoints_retraites[i] = effectif_deces_conjoints_retraites[i] + a['deaths'][i]
+                
+            if a['type'][i] == 'widow':
+                effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
+                
+        for a in children_proj_.values():
+            if a['type'][i] == 'active':
+                effectif_enfants_actifs[i] = effectif_enfants_actifs[i] + a['lives'][i]
+                effectif_deces_enfants_actifs[i] = effectif_deces_enfants_actifs[i] + a['deaths'][i]
+                
+            if a['type'][i] == 'retired':
+                effectif_enfants_retraites[i] = effectif_enfants_retraites[i] + a['lives'][i]
+                effectif_deces_enfants_retraites[i] = effectif_deces_enfants_retraites[i] + a['deaths'][i]
+            
+    # construct DataFrame of projected numbers
+    totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
+    totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
+    totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites)]
+
+    Data = {'Year':list(range(MAX_YEARS)), 'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
+            'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
+            'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
+            'effectif_enfants_retraites' : effectif_enfants_retraites, 'Total Children' : totalChildren}
+
+    Effectifs = pd.DataFrame(data=Data,
+                columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause',
+                         'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 'effectif_enfants_retraites', 'Total Children' ]) 
+    return Effectifs
+    
+    
+
+def leavingNumber(employees_proj_, n_new_retirees_, MAX_YEARS):
+    """ 
+        Assumes parameter employees_proj_ is of the form of that returned by simulerEffectif
+  
+        Parameters: 
+            employees_proj_ (dic): a dic containing projected employees
+            n_new_retirees_ (list) : number of new retired per year
+        Returns: 
+            DataFrame: A DataFrame containing global numbers leaving population of employees by year : 
+                       deaths, resignation, new retirees 
+    """
+    
+    # number of quitters (resignations) per year
+    effectif_demissions = [0] * MAX_YEARS
+    
+    # number of dying actives per year
+    effectif_deces_actifs = [0] * MAX_YEARS
+    
+    for i in range(MAX_YEARS):
+        for a in employees_proj_.values():
+            if a['type'][i] == 'active':
+                effectif_deces_actifs[i] = effectif_deces_actifs[i] + a['deaths'][i]
+            
+            effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
     
     
     
+    #construct DataFrame of projected numbers leaving the pop : deaths, resignations and new retirees
+    totalLeaving = [sum(x) for x in zip(effectif_deces_actifs, effectif_demissions, n_new_retirees_ )]
+    
+    Data = {'Year':list(range(MAX_YEARS)),'effectif_deces_actifs' : effectif_deces_actifs, 'effectif_demissions' : effectif_demissions, 
+            'new_retirees' : n_new_retirees_, 'Total Living' : totalLeaving}
+
+    Leaving = pd.DataFrame(data=Data, 
+            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 'Total Living'])
+    
+    return Leaving
+    
+
     
     
     
+
     
+

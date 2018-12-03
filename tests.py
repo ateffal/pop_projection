@@ -9,12 +9,10 @@ import Effectifs as eff
 import pandas as pd
 import time
 import Actuariat as act
-from sqlalchemy.sql.expression import false
 
 #%%
 
-################# laws 
-
+#Define some laws
 def law_ret1(age, year_emp):
     if year_emp < 2002:
         if age+1 >= 55:
@@ -109,17 +107,21 @@ def law_replacement1(departures_, year_):
 
     
 ################################################# Code pour les tests ############################################
-path ="C:\\Users\\TEFFAL AMINE\\Application FS\\Python\\pop_projection\\"
+# Path for input data
+path ="./data/"
+
+# Start Time 
 t1 = time.time()
 
-# nombre maximum d'années de projection
+# Number of years to project
 MAX_ANNEES = 50
 
-# chargement des données
+# Loading data
 employees = pd.read_csv(path + "employees.csv",sep=";", decimal = ",")
 spouses = pd.read_csv(path + "spouses.csv",sep=";", decimal = ",")
 children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
 
+# Summary informations about input data
 print("employees : ", len(employees))
 print(employees.head(5))
 print("spouses : ", len(spouses))
@@ -128,113 +130,19 @@ print("children : ", len(children))
 print(children.head(5))
 
 
+# Projection of population
 numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), 
                     (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']), law_replacement_ = None)
 
-# number of actives per year
-effectif_actifs = [0]*MAX_ANNEES
-effectif_conjoints_actifs = [0]*MAX_ANNEES
-effectif_enfants_actifs = [0]*MAX_ANNEES
-
-# number of retired per year
-effectif_retraites = [0]*MAX_ANNEES
-effectif_conjoints_retraites = [0]*MAX_ANNEES
-effectif_enfants_retraites = [0]*MAX_ANNEES
-
-# number of quitters per year
-effectif_demissions = [0]*MAX_ANNEES
-
-#number of dying actives
-effectif_deces_actifs = [0]*MAX_ANNEES
-effectif_deces_conjoints_actifs = [0]*MAX_ANNEES
-effectif_deces_enfants_actifs = [0]*MAX_ANNEES
-
-#number of dying retired
-effectif_deces_retraites = [0]*MAX_ANNEES
-effectif_deces_conjoints_retraites = [0]*MAX_ANNEES
-effectif_deces_enfants_retraites = [0]*MAX_ANNEES
-
-#number of living widows
-effectif_ayants_cause = [0]*MAX_ANNEES
-
-
-for i in range(MAX_ANNEES):
-    for a in numbers_[0].values():
-        if a['type'][i] == 'active':
-            effectif_actifs[i] = effectif_actifs[i] + a['lives'][i]
-            effectif_deces_actifs[i] = effectif_deces_actifs[i] + a['deaths'][i]
-        else:
-            effectif_retraites[i] = effectif_retraites[i] + a['lives'][i]
-            effectif_deces_retraites[i] = effectif_deces_retraites[i] + a['deaths'][i]
-            
-        
-        effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
-        
-    
-    for a in numbers_[1].values():
-        if a['type'][i] == 'active':
-            effectif_conjoints_actifs[i] = effectif_conjoints_actifs[i] + a['lives'][i]
-            effectif_deces_conjoints_actifs[i] = effectif_deces_conjoints_actifs[i] + a['deaths'][i]
-            
-        if a['type'][i] == 'retired':
-            effectif_conjoints_retraites[i] = effectif_conjoints_retraites[i] + a['lives'][i]
-            effectif_deces_conjoints_retraites[i] = effectif_deces_conjoints_retraites[i] + a['deaths'][i]
-            
-        if a['type'][i] == 'widow':
-            effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
-            
-            
-    for a in numbers_[2].values():
-        if a['type'][i] == 'active':
-            effectif_enfants_actifs[i] = effectif_enfants_actifs[i] + a['lives'][i]
-            effectif_deces_enfants_actifs[i] = effectif_deces_enfants_actifs[i] + a['deaths'][i]
-            
-        if a['type'][i] == 'retired':
-            effectif_enfants_retraites[i] = effectif_enfants_retraites[i] + a['lives'][i]
-            effectif_deces_enfants_retraites[i] = effectif_deces_enfants_retraites[i] + a['deaths'][i]
-            
-        
-            
-    
-            
-            
-#construct DataFrame of projected numbers
-totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
-totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
-totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites)]
-
-Data = {'Year':list(range(MAX_ANNEES)),'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
-        'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
-        'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
-        'effectif_enfants_retraites' : effectif_enfants_retraites, 'Total Children' : totalChildren}
-
-Effectifs = pd.DataFrame(data=Data, 
-            columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause', 
-                     'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 'effectif_enfants_retraites', 'Total Children' ])
-
-
-print(Effectifs.head(10))
+# Global numbers
+Effectifs = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], MAX_ANNEES)
 
 Effectifs.to_csv('Effectifs_python.csv', sep = ';', index=False, decimal=',')
 
+#Number of actives leaving population : deaths, resignations, and new retired
+Leaving = eff.leavingNumber(numbers_[0], numbers_[4], MAX_ANNEES)
 
-
-#construct DataFrame of projected numbers living the pop : deaths, resignations
-totalLiving = [sum(x) for x in zip(effectif_deces_actifs, effectif_demissions, effectif_deces_retraites,effectif_deces_conjoints_actifs, effectif_deces_conjoints_retraites )]
-
-
-Data = {'Year':list(range(MAX_ANNEES)),'effectif_deces_actifs' : effectif_deces_actifs, 'effectif_demissions' : effectif_demissions, 
-        'effectif_deces_retraites' : effectif_deces_retraites, 'effectif_deces_conjoints_actifs' : effectif_deces_conjoints_actifs, 
-        'effectif_deces_conjoints_retraites' : effectif_deces_conjoints_retraites, 'Total Living' : totalLiving}
-
-Living = pd.DataFrame(data=Data, 
-            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'effectif_deces_retraites' , 'effectif_deces_conjoints_actifs', 
-                     'effectif_deces_conjoints_retraites', 'Total Living'])
-
-
-print(Living.head(10))
-
-Living.to_csv('Sortants_python.csv', sep = ';', index=False, decimal=',')
+Leaving.to_csv('Sortants_python.csv', sep = ';', index=False, decimal=',')
 
 
 #export projected employees
@@ -246,14 +154,10 @@ pd.DataFrame.from_dict(numbers_[1]).to_csv('spouses_proj.csv', sep = ';', index=
 #export projected children
 pd.DataFrame.from_dict(numbers_[2]).to_csv('children_proj.csv', sep = ';', index=False, decimal=',')
 
-#export projected new retiree
-#pd.DataFrame.from_dict(numbers_[3]).to_csv('new_retired.csv', sep = ';', index=False, decimal=',')
-print(numbers_[4])
-
-
-
-
+# End time
 t2 = time.time()
+
+#Print start time, end time and duration
 print("Début :", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(t1)))
 print("Fin :", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(t2)))
 print('Durée de calcul (minutes) : ', (t2-t1)/60)
