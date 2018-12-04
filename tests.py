@@ -108,7 +108,7 @@ def law_replacement1(departures_, year_):
     
 
 # Path for input data
-path ="./data/fictiveData/"
+path ="./data/"
 
 # Start Time 
 t1 = time.time()
