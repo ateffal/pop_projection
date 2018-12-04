@@ -106,9 +106,9 @@ def law_replacement1(departures_, year_):
 
 
     
-################################################# Code pour les tests ############################################
+
 # Path for input data
-path ="./data/"
+path ="./data/fictiveData/"
 
 # Start Time 
 t1 = time.time()
@@ -140,7 +140,7 @@ Effectifs = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], MAX_ANNEES)
 Effectifs.to_csv('Effectifs_python.csv', sep = ';', index=False, decimal=',')
 
 #Number of actives leaving population : deaths, resignations, and new retired
-Leaving = eff.leavingNumber(numbers_[0], numbers_[4], MAX_ANNEES)
+Leaving = eff.leavingNumbers(numbers_[0], numbers_[4], MAX_ANNEES)
 
 Leaving.to_csv('Sortants_python.csv', sep = ';', index=False, decimal=',')
 

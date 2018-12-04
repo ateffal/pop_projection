@@ -589,7 +589,7 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     
     
 
-def leavingNumber(employees_proj_, n_new_retirees_, MAX_YEARS):
+def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     """ 
         Assumes parameter employees_proj_ is of the form of that returned by simulerEffectif
   
