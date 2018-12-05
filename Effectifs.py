@@ -6,12 +6,9 @@ Created on Mon May  7 14:08:56 2018
 """
 #%%
 
-import random
 import pandas as pd
-import Actuariat as act
-import Retraite as ret
-from nbconvert.exporters.base import export
-from _ast import arg
+from pop_projection import Actuariat as act
+
 
 
 
