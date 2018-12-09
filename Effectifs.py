@@ -3,12 +3,13 @@
 Created on Mon May  7 14:08:56 2018
 
 @author: a.teffal
+
 """
 #%%
 
 import pandas as pd
 from pop_projection import Actuariat as act
-
+import inspect
 
 
 
@@ -57,9 +58,6 @@ def probaNaissance(age):
     
     return temp[age -23]
     
-
-
-
 #%%
 
 def is_alive(Age, Table):
@@ -92,6 +90,21 @@ def willMarry(Age, typeAgent):
 
 #%%
 
+def verifyCols(data_, cols):
+    '''
+    verify that list of cols exist in data_
+
+    '''
+    temp = []
+    cols_data = list(data_.columns)
+    for c in cols:
+        if not c in cols_data:
+            temp.append(c)
+    
+    return temp
+
+
+
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
                     law_resignation_ = None, law_marriage_ = None, law_birth_ = None, law_replacement_ =  None):
     
@@ -114,10 +127,17 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     #setting law of retirement
     if law_retirement_ == None:
         law_retirement = ret.retire
-        cols_ret = ['age']
+        cols_ret = ['age'] 
     else:
-        law_retirement = law_retirement_[0]
-        cols_ret = law_retirement_[1]
+        law_retirement = law_retirement_[0] if type(law_retirement_) is tuple else law_retirement_
+        #cols_ret = law_retirement_[1]
+        cols_ret = law_retirement_[1] if type(law_retirement_) is tuple else inspect.getfullargspec(law_retirement)[0]
+
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_ret)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
         
     #setting law of resignation
     if law_resignation_ == None:
