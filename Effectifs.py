@@ -287,7 +287,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         employee_id: The id of the employee attached to this child.
         year_: year of projection when this child is added : 1, 2,...
         
-
         """
         
         if employees_proj[employee_id]["data"]["type"] == "active" or employees_proj[employee_id]["data"]["type"] == "retired" :
