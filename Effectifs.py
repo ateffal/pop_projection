@@ -144,27 +144,43 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         law_resignation = turnover
         cols_res = ['age']
     else:
-        law_resignation = law_resignation_[0]
-        cols_res = law_resignation_[1]
+        law_resignation = law_resignation_[0] if type(law_resignation_) is tuple else law_resignation_
+        cols_res = law_resignation_[1] if type(law_resignation_) is tuple else inspect.getfullargspec(law_resignation)[0]
+
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_res)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
         
     #setting law of marriage
     if law_marriage_ == None:
         law_marriage = probaMariage
         cols_mar = ['age', 'type']
     else:
-        law_marriage = law_marriage_[0]
-        cols_mar = law_marriage_[1]
+        law_marriage = law_marriage_[0] if type(law_marriage_) is tuple else law_marriage_
+        cols_mar = law_marriage_[1] if type(law_marriage_) is tuple else inspect.getfullargspec(law_marriage)[0]
         
-    
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_mar)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
+
     #setting law of birth
     if law_birth_ == None:
         law_birth = probaNaissance
         cols_birth = ['age']
     else:
-        law_birth = law_birth_[0]
-        cols_birth = law_birth_[1]
+        law_birth = law_birth_[0] if type(law_birth_) is tuple else law_birth_
+        cols_birth = law_birth_[1] if type(law_birth_) is tuple else inspect.getfullargspec(law_birth)[0]
         
-    
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(spouses, cols_birth)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in spouses : ', unfound_cols)
+        return None
+
     # Numbers of each category of population
     n_e = len(employees) 
     n_s = len(spouses)
