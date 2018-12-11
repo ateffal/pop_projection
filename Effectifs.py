@@ -12,7 +12,11 @@ from pop_projection import Actuariat as act
 import inspect
 
 
-
+def retire(age):
+    if age >= 55:
+        return True
+    else:
+        return False
 
 #%%
 def turnover(age) :
@@ -126,7 +130,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     '''
     #setting law of retirement
     if law_retirement_ == None:
-        law_retirement = ret.retire
+        law_retirement = retire
         cols_ret = ['age'] 
     else:
         law_retirement = law_retirement_[0] if type(law_retirement_) is tuple else law_retirement_
@@ -207,8 +211,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
             'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
         
-        
-    print('lenth of spouses_proj at begining : ', len(spouses_proj))
     
     #dic of children. For children, keys are tuples (id, rang) : (first column, second column)
     for i in range(n_c):
@@ -510,9 +512,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
         #total departures
         total_departures = n_retired + n_resignation + n_death
-        #print('Year : ',i,'total_departures : ', total_departures)
-        # departures by group
-        #print('Year : ',i,' Departures by group : ', departures)
         
         
         # if law_replacement = None, replacement of departures 50% males, 50% females age 23 in each group
@@ -619,7 +618,166 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
                          'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 'effectif_enfants_retraites', 'Total Children' ]) 
     return Effectifs
     
+def individual_employees_numbers(employees_proj_): 
+    """
+    Returns a tuple of four data frames : projected lives, deaths, res and 
+    type for employees
     
+    Parameters
+    ----------
+    employees_proj_ : dic of the form of that returned by simulerEffectif
+        
+    
+    """
+    ids = []
+    lives = []
+    deaths = []
+    res = []
+    types = []
+    
+    # Store data in lists
+    for emp in employees_proj_:
+        ids.append(emp)
+        lives.append(employees_proj_[emp]['lives'])
+        deaths.append(employees_proj_[emp]['deaths'])
+        res.append(employees_proj_[emp]['res'])
+        types.append(employees_proj_[emp]['type'])
+
+    # number of employees
+    n_emp = len(ids)
+
+    #number of years
+    n_years = len(lives[0])
+
+    # create the dataframes to be returned
+    df_lives = pd.DataFrame()
+    df_deaths = pd.DataFrame()
+    df_res = pd.DataFrame()
+    df_types = pd.DataFrame()
+
+    #add the id column
+    df_lives['id'] = ids
+    df_deaths['id'] = ids
+    df_res['id'] = ids
+    df_types['id'] = ids
+
+    for year in range(n_years):
+        df_lives['year_' + str(year)] = [lives[emp][year] for emp in range(n_emp)]
+        df_deaths['year_' + str(year)] = [deaths[emp][year] for emp in range(n_emp)]
+        df_res['year_' + str(year)] = [res[emp][year] for emp in range(n_emp)]
+        df_types['year_' + str(year)] = [types[emp][year] for emp in range(n_emp)]
+
+    return df_lives, df_deaths, df_res, df_types
+
+
+
+
+def individual_spouses_numbers(spouses_proj_): 
+    """
+    Returns a tuple of four data frames : projected lives, deaths and 
+    type for spouses
+    
+    Parameters
+    ----------
+    spouses_proj_ : dic of the form of that returned by simulerEffectif
+        
+    
+    """
+    ids = []
+    rangs = []
+    lives = []
+    deaths = []
+    types = []
+    
+    # Store data in lists
+    for spouse in spouses_proj_:
+        ids.append(spouse[0])
+        rangs.append(spouse[1])
+        lives.append(spouses_proj_[spouse]['lives'])
+        deaths.append(spouses_proj_[spouse]['deaths'])
+        types.append(spouses_proj_[spouse]['type'])
+
+    # number of spouses
+    n_spouses = len(ids)
+
+    #number of years
+    n_years = len(lives[0])
+
+    # create the dataframes to be returned
+    df_lives = pd.DataFrame()
+    df_deaths = pd.DataFrame()
+    df_types = pd.DataFrame()
+
+    #add the id column
+    df_lives['id'] = ids
+    df_lives['rang'] = rangs
+    df_deaths['id'] = ids
+    df_deaths['rang'] = rangs
+    df_types['id'] = ids
+    df_types['rang'] = rangs
+    
+    for year in range(n_years):
+        df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
+        df_deaths['year_' + str(year)] = [deaths[spouse][year] for spouse in range(n_spouses)]
+        df_types['year_' + str(year)] = [types[spouse][year] for spouse in range(n_spouses)]
+
+    return df_lives, df_deaths, df_types
+
+
+
+
+
+def individual_children_numbers(children_proj_): 
+    """
+    Returns a tuple of four data frames : projected lives, deaths and 
+    type for children
+    
+    Parameters
+    ----------
+    children_proj_ : dic of the form of that returned by simulerEffectif
+        
+    
+    """
+    ids = []
+    rangs = []
+    lives = []
+    deaths = []
+    types = []
+    
+    # Store data in lists
+    for child in children_proj_:
+        ids.append(child[0])
+        rangs.append(child[1])
+        lives.append(children_proj_[child]['lives'])
+        deaths.append(children_proj_[child]['deaths'])
+        types.append(children_proj_[child]['type'])
+
+    # number of children
+    n_children = len(ids)
+
+    #number of years
+    n_years = len(lives[0])
+
+    # create the dataframes to be returned
+    df_lives = pd.DataFrame()
+    df_deaths = pd.DataFrame()
+    df_types = pd.DataFrame()
+
+    #add the id column
+    df_lives['id'] = ids
+    df_lives['rang'] = rangs
+    df_deaths['id'] = ids
+    df_deaths['rang'] = rangs
+    df_types['id'] = ids
+    df_types['rang'] = rangs
+    
+    for year in range(n_years):
+        df_lives['year_' + str(year)] = [lives[child][year] for child in range(n_children)]
+        df_deaths['year_' + str(year)] = [deaths[child][year] for child in range(n_children)]
+        df_types['year_' + str(year)] = [types[child][year] for child in range(n_children)]
+
+    return df_lives, df_deaths, df_types
+
 
 def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     """ 
@@ -658,9 +816,8 @@ def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
             columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 'Total Living'])
     
     return Leaving
-    
 
-    
+ 
     
     
 
