@@ -11,7 +11,6 @@ import pandas as pd
 from pop_projection import Actuariat as act
 import inspect
 
-
 def retire(age):
     if age >= 55:
         return True
@@ -46,7 +45,6 @@ def probaMariage(age, typeAgent):
     else:
         return 0
     
-
 def probaNaissance(age):
     """
     Return the probability of having a new born  during the following year at a given age
@@ -106,8 +104,6 @@ def verifyCols(data_, cols):
             temp.append(c)
     
     return temp
-
-
 
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
                     law_resignation_ = None, law_marriage_ = None, law_birth_ = None, law_replacement_ =  None):
@@ -194,7 +190,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     employees_proj = {}
     spouses_proj = {}
     children_proj = {}
-    
     
     # initialisation of dics
     #dic of employees. For employees, keys are id (first column)
@@ -352,8 +347,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 else:
                     departures[employee['data']['group']] = death * employee['lives'][i-1]
                
-                
-            
             #probability of quitting for actives only
             if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
                 args_ = tuple([employee["data"][z] for z in cols_res])
@@ -694,6 +687,7 @@ def individual_spouses_numbers(spouses_proj_):
     """
     ids = []
     rangs = []
+    data = []
     lives = []
     deaths = []
     types = []
@@ -702,6 +696,7 @@ def individual_spouses_numbers(spouses_proj_):
     for spouse in spouses_proj_:
         ids.append(spouse[0])
         rangs.append(spouse[1])
+        data.append(spouses_proj_[spouse]['data'])
         lives.append(spouses_proj_[spouse]['lives'])
         deaths.append(spouses_proj_[spouse]['deaths'])
         types.append(spouses_proj_[spouse]['type'])
@@ -724,6 +719,13 @@ def individual_spouses_numbers(spouses_proj_):
     df_deaths['rang'] = rangs
     df_types['id'] = ids
     df_types['rang'] = rangs
+
+    # data columns
+    cols_data = data[0].keys()
+    for c in cols_data:
+        df_lives[c] = [d[c] for d in data]
+        df_deaths[c] = [d[c] for d in data]
+        df_types[c] = [d[c] for d in data]
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
@@ -749,6 +751,7 @@ def individual_children_numbers(children_proj_):
     """
     ids = []
     rangs = []
+    data = []
     lives = []
     deaths = []
     types = []
@@ -757,6 +760,7 @@ def individual_children_numbers(children_proj_):
     for child in children_proj_:
         ids.append(child[0])
         rangs.append(child[1])
+        data.append(children_proj_[child]['data'])
         lives.append(children_proj_[child]['lives'])
         deaths.append(children_proj_[child]['deaths'])
         types.append(children_proj_[child]['type'])
@@ -779,6 +783,13 @@ def individual_children_numbers(children_proj_):
     df_deaths['rang'] = rangs
     df_types['id'] = ids
     df_types['rang'] = rangs
+
+    # data columns
+    cols_data = data[0].keys()
+    for c in cols_data:
+        df_lives[c] = [d[c] for d in data]
+        df_deaths[c] = [d[c] for d in data]
+        df_types[c] = [d[c] for d in data]
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[child][year] for child in range(n_children)]
