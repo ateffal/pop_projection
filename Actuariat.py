@@ -42,9 +42,9 @@ TV_88_90 = np.array([100000, 99352, 99294, 99261, 99236, 99214, 99194, 99177, 99
 
 
 #%%
-tables_mortalite = {'TD 73-77':TD_73_77, 'TD 90-92':TD_90_92, 'TV 88-90':TV_88_90, 'Sans':[1]*121}
+mortality_tables = {'TD 73-77':TD_73_77, 'TD 90-92':TD_90_92, 'TV 88-90':TV_88_90, 'Sans':[1]*121}
 
-def ajouterTable(Nom, lx):
+def add_mortality_table(Nom, lx):
     if len(lx) > 121:
         print('La longuer de lx doit être inférieure ou égale à 121')
         return False
@@ -59,7 +59,7 @@ def ajouterTable(Nom, lx):
     for i in range(n):
         temp[i]=lx[i]
     
-    tables_mortalite[Nom] = temp
+    mortality_tables[Nom] = temp
     print('Mortality table ', Nom, ' added successfully.')
 #%%
 
@@ -69,9 +69,9 @@ def sfs_lx(Age, Table):
         return 0
     if Age < 0:
         raise NameError('Age invalide !')
-    if Table not in tables_mortalite:
+    if Table not in mortality_tables:
         raise NameError('Table introuvable !')
-    return tables_mortalite[Table][Age]
+    return mortality_tables[Table][Age]
 
 #%%
 
