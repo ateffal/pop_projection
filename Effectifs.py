@@ -108,22 +108,69 @@ def verifyCols(data_, cols):
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
                     law_resignation_ = None, law_marriage_ = None, law_birth_ = None, law_replacement_ =  None):
     
-    ''' assumes employees, spouses and children are pandas dataframes with at least 6 columns :
+    """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
+        mortality, retirement, resignation, marriage, birth and replacement.
+
+    assumes employees, spouses and children are pandas dataframes with at least 6 columns :
         - id   : an unique identifier of the employee
         - type : active or retired for employees. active, or retired or widow or widower for spouses and children.
-                 for spouses and children, type is the type of the employee taht they are attached to if it's still alive, or widower otherwise
+                 for spouses and children, type is the type of the employee that they are attached to 
+                 if it's still alive, or widower otherwise.
         - sex  : male or female
         - familyStatus : maried, or not maried
         - age
-        - group : a sub-population. ex : group of employees recruted before 2002, group of directors,...
-                  if we don't have groups, just set it to id
-        
-        if supplied, law_retirement_ is a tuple : (a function, list of columns of employees to be passed to this function )
-        if supplied, law_resignation_ is a tuple : (a function, list of columns of employees to be passed to this function )
-        if supplied, law_marriage_ is a tuple : (a function, list of columns of employees to be passed to this function )
-        if supplied, law_birth_ is a tuple : (a function, list of columns of employees to be passed to this function )
-        
-    '''
+        - group (optional) : a sub-population. ex : group of employees recruted before 2002, group of directors,...
+
+    Parameters
+    ----------
+    employees : pandas dataframe
+                dataframe of employees having at least columns: id, type, sexe, familyStatus, age and group (optional).
+    spouses   : pandas dataframe
+                dataframe of spouses having at least columns : id, type, sexe, familyStatus and age.
+    children   : pandas dataframe
+                dataframe of children having at least columns : id, type, sexe, familyStatus and age.
+    mortalityTable : string
+                name of the mortality table. 
+                View existing mortality tables with Actuariat.mortality_tables.
+                Add a mortality table with Actuariat.add_mortality_table
+
+    MAX_YEARS  : int
+                number of years of projection
+    law_retirement_ : function or tuple
+                    a function returning a boolean (the employee will retire yes or no), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    law_resignation_ : function or tuple
+                    a function returning a number between 0 and 1 (probability that the employee will resign next year), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    law_marriage_ : function or tuple
+                    a function returning a number between 0 and 1 (probability that the employee will marry next year), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    law_birth_ : function or tuple
+                a function returning a number between 0 and 1 (probability that the employee (or spouse)  
+                will  give birth next year), or a  tuple : (function, liste of it's parameters 
+                that have same name in the employees or spouses data frame)
+    law_replacement_ : function
+                     function having parameters :
+                     - departures_ : a dic storing number of departures by group of the year year_
+                     - year_ : year of projection
+                     this function returns a list of employees to add to population. Each
+                     employee in this list is a dic with keys : 'sex', 'age', 'number' and 'group'
+    
+    Returns
+    -------
+    tuple
+        a tuple of projected population as dics: 
+        - projected employees, a dic with key id and value is a dic with keys: data, exist, entrance, lives, deaths, res, type.
+        - projected spouses, a dic with key (id, rang) and value is a dic with keys : data, exist, entrance, lives, deaths, type.
+        - projected children, a dic with key (id, rang) and value is a dic with keys : data, exist, entrance, lives, deaths, type.
+        - new retirees a dic : {year : [list of employees that retired that year (their ids)] }
+        - n_new_retirees a list storing number of retirees for each year 
+    """
+
+    # if group doesn't exist in employees create it and set to be id
+    if not 'group' in list(employees):
+        employees['group'] = employees['id']
+
     #setting law of retirement
     if law_retirement_ == None:
         law_retirement = retire
@@ -452,7 +499,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             #update deaths
             spouse["deaths"][i] = spouse["lives"][i-1] * death
             
-            
             #handling births for active and retired only
             if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
                 add_new_child(id_s[0],id_s[1], i)
@@ -460,7 +506,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
             
-         
         #projection of children
         for id_c, child in children_proj.items():
             
