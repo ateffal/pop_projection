@@ -150,11 +150,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 will  give birth next year), or a  tuple : (function, liste of it's parameters 
                 that have same name in the employees or spouses data frame)
     law_replacement_ : function
-                     function having parameters :
-                     - departures_ : a dic storing number of departures by group of the year year_
-                     - year_ : year of projection
-                     this function returns a list of employees to add to population. Each
-                     employee in this list is a dic with keys : 'sex', 'age', 'number' and 'group'
+                    function having parameters :
+                    - departures_ : a dic storing number of departures by group of the year year_
+                    - year_ : year of projection
+                    this function returns a list of employees to add to population. Each
+                    employee in this list is a dic with keys : 'key' (to uniquely define the employee), 
+                    'number' and 'data' (list of values that corresponds to columns in employee except id)
     
     Returns
     -------
@@ -167,7 +168,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         - n_new_retirees a list storing number of retirees for each year 
     """
 
-    # if group doesn't exist in employees create it and set to be id
+    # if group doesn't exist in employees create it and set it to be id
     if not 'group' in list(employees):
         employees['group'] = employees['id']
 
@@ -265,20 +266,20 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     #number of retirees for each year
     n_new_retirees = [0] * MAX_YEARS
 
-    def add_new_employee(id_, year_, sex_, age_, ponderation, group_):
+    def add_new_employee(id_, year_, ponderation, data_emp):
         """Adds a new employee in the employees_proj dic.
         
         Args:
         id_: The id of the employee to be added (key of the dic).
         year_: year of projection when this employee is added : 1, 2,...
-        sex_ : sex of the employee
-        age : age at of the employee at year year_
         ponderation : if 0.5 for example,add 50% of an employee. This is used to handle 'rate' of replacement 
+        data_emp : a list of values corresponding to columns in employee
+        
+        
 
         """
-        employees_proj[id_] = {'data':dict(zip(['type','sex', 'familyStatus','age', 'Year_employment', 'group'],['active',sex_, 'not married',age_, 2017 + year_, group_  ])), 'exist':0, 
-            'entrance':year_, 'lives':[0] * MAX_YEARS, 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS,
-            'type':[''] * MAX_YEARS}
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':year_, 'lives':[0] * MAX_YEARS, 
+        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS}
         
         # updating lives and type
         employees_proj[id_]['lives'][year_] = ponderation
@@ -367,11 +368,11 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     # main loop
     for i in range(1, MAX_YEARS):
         # employees
-        n_retired = 0
-        n_death = 0
-        n_resignation = 0
-        n_marriage = 0
-        total_departures = 0
+        n_retired = 0.0
+        n_death = 0.0
+        n_resignation = 0.0
+        n_marriage = 0.0
+        total_departures = 0.0
         departures = {} # a dic storing the number of departures for a group each year
         
         #projection of employees
@@ -407,14 +408,14 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             
             # departures by group
             if employee['data']['group'] in departures:
-                departures[employee['data']['group']] += resignation * employee['lives'][i-1]
+                departures[employee['data']['group']] += resignation * employee['lives'][i-1]*(1-death)
             else:
-                departures[employee['data']['group']] = resignation * employee['lives'][i-1]
+                departures[employee['data']['group']] = resignation * employee['lives'][i-1]*(1-death)
                
             # if the employee is active check if he will retire
             if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
                 args_ = tuple([employee["data"][z] for z in cols_ret])
-                
+
                 if law_retirement(*args_):
                     #update number of retired
                     n_retired += 1* employee['lives'][i-1]
@@ -422,9 +423,9 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                     
                     # departures by group
                     if employee['data']['group'] in departures:
-                        departures[employee['data']['group']] += employee['lives'][i-1]
+                        departures[employee['data']['group']] += employee['lives'][i-1]*(1-death)*(1-resignation)
                     else:
-                        departures[employee['data']['group']] = employee['lives'][i-1]
+                        departures[employee['data']['group']] = employee['lives'][i-1]*(1-death)*(1-resignation)
                     
                     #update type
                     employee["type"][i] = "retired"
@@ -559,9 +560,9 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
 #                 add_new_employee('new_employee_year_males_' + str(i)  + '_group_'+ str(g) + '_female', i, 'female', 23, 0.5 * departures[g],g)
             x = 0
         else:
-            new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : sex, age, number and group
+            new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : key, number and data (list of values corresponding to employees)
             for ne in new_emp:
-                add_new_employee('new_employee_year_' + str(i) + '_group_' + str(ne['group']) + '_' + str(ne['sex']), i, ne['sex'], ne['age'], ne['number'],ne['group']) 
+                add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
         
         #add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, total_departures,1)
         
@@ -717,8 +718,6 @@ def individual_employees_numbers(employees_proj_):
     return df_lives, df_deaths, df_res, df_types
 
 
-
-
 def individual_spouses_numbers(spouses_proj_): 
     """
     Returns a tuple of four data frames : projected lives, deaths and 
@@ -778,9 +777,6 @@ def individual_spouses_numbers(spouses_proj_):
         df_types['year_' + str(year)] = [types[spouse][year] for spouse in range(n_spouses)]
 
     return df_lives, df_deaths, df_types
-
-
-
 
 
 def individual_children_numbers(children_proj_): 
