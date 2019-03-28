@@ -34,7 +34,7 @@ def turnover(age) :
 #%%
 def probaMariage(age, typeAgent):
     """
-    Return the probability of getting maried  during the following year at a given age
+    Return the probability of getting married  during the following year at a given age
 
     """
     if typeAgent=='active':
@@ -100,8 +100,9 @@ def verifyCols(data_, cols):
     temp = []
     cols_data = list(data_.columns)
     for c in cols:
-        if not c in cols_data:
-            temp.append(c)
+        if c != 'year_proj':
+            if not c in cols_data:
+                temp.append(c)
     
     return temp
 
@@ -117,7 +118,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                  for spouses and children, type is the type of the employee that they are attached to 
                  if it's still alive, or widower otherwise.
         - sex  : male or female
-        - familyStatus : maried, or not maried
+        - familyStatus : married, or not married
         - age
         - group (optional) : a sub-population. ex : group of employees recruted before 2002, group of directors,...
 
@@ -278,7 +279,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
 
         """
-        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':year_, 'lives':[0] * MAX_YEARS, 
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_+1), 'lives':[0] * MAX_YEARS, 
         'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS}
         
         # updating lives and type
@@ -317,12 +318,19 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         type_temp = employees_proj[employee_id]["type"][i]
         
         #if not already added add it
-        if not (employee_id, 1) in spouses_proj:
-            spouses_proj[(employee_id, 1)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'married'])), 'exist':1, 
+        rang = year_
+        if not (employee_id, rang) in spouses_proj:
+            spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
         else:
-            spouses_proj[(employee_id, 1)]['lives'][year_] = spouses_proj[(employee_id, 1)]['lives'][year_] + live_emp * probMar
+            tt = spouses_proj[(employee_id, rang)]['lives'][year_]
+            if  tt > 0:
+                print('avant : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
+            spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
+            
+            if tt > 0:
+                print('apres : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
     
     
     def add_new_child(employee_id, rang_, year_):
@@ -414,7 +422,10 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                
             # if the employee is active check if he will retire
             if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
-                args_ = tuple([employee["data"][z] for z in cols_ret])
+                if not 'year_proj' in cols_ret:
+                    args_ = tuple([employee["data"][z] for z in cols_ret])
+                else:
+                    args_ = tuple([employee["data"][z] for z in cols_ret[:-1]]) + (i,)
 
                 if law_retirement(*args_):
                     #update number of retired
@@ -456,7 +467,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             employee["res"][i] = resignation* employee['lives'][i-1]
             
             #handling marriage
-            if employee["data"]["familyStatus"] == "not married":
+            if employee["data"]["familyStatus"] == "not married" : 
                 args_ = tuple([employee["data"][z] for z in cols_mar])
                 add_new_spouse(id_e, i, law_marriage(*args_))
                 n_marriage += 1
@@ -495,10 +506,10 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 resignation = 0
            
             #update lives
-            spouse["lives"][i] = spouse["lives"][i-1] * survie * (1-resignation)
+            spouse["lives"][i] = spouse["lives"][i] + spouse["lives"][i-1] * survie * (1-resignation)
             
             #update deaths
-            spouse["deaths"][i] = spouse["lives"][i-1] * death
+            spouse["deaths"][i] = spouse["deaths"][i] + spouse["lives"][i-1] * death
             
             #handling births for active and retired only
             if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
