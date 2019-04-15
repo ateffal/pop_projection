@@ -13,8 +13,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# In[7]:
-
 
 # Define law of replacement
 def law_replacement1(departures_, year_):
@@ -59,25 +57,13 @@ def law_replacement1(departures_, year_):
     
     return new_employees
 
-
-# In[8]:
-
-
 # Path for input data
 path ="./pop_projection/data/"
-
-
-# In[9]:
-
 
 # Loading data
 employees = pd.read_csv(path + "employees.csv",sep=";", decimal = ",")
 spouses = pd.read_csv(path + "spouses.csv",sep=";", decimal = ",")
 children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
-
-
-# In[10]:
-
 
 # Diplay some data
 print('Employees :')
@@ -87,16 +73,19 @@ print(spouses.head(10))
 print('Children :')
 print(children.head(10))
 
-
-# In[11]:
-
-
 # Projection of population
 # Number of years to project
 MAX_ANNEES = 100
 
 # Projection
 numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = law_replacement1)
+
+# global numbers
+global_numb = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], 50)
+
+# printing results
+print(global_numb)
+
 
 
 
