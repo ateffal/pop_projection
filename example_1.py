@@ -85,18 +85,3 @@ global_numb = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], 50)
 
 # printing results
 print(global_numb)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
