@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{141c1ca0-4a95-46e1-b356-13facdc13c23}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>usage_example_1.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include=".spyproject\codestyle.ini" />
+    <Content Include=".spyproject\encoding.ini" />
+    <Content Include=".spyproject\vcs.ini" />
+    <Content Include=".spyproject\workspace.ini" />
+    <Content Include="desktop.ini" />
+    <Content Include="pop_projection\usage_examples\output_7_0.png" />
+    <Content Include="pop_projection\usage_examples\output_9_0.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Agent_Actif.py" />
+    <Compile Include="CalculEngagement_CRP.py" />
+    <Compile Include="frmPrincipale.py" />
+    <Compile Include="pop_projection\Actuariat.py" />
+    <Compile Include="pop_projection\Effectifs.py" />
+    <Compile Include="Retraite.py" />
+    <Compile Include="tests.py" />
+    <Compile Include="usage_example_1.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".spyproject" />
+    <Folder Include="pop_projection" />
+    <Folder Include="pop_projection\usage_examples" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.6" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
