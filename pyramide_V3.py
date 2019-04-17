@@ -9,49 +9,7 @@ from pop_projection import Effectifs as eff
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-def law_replacement1(departures_, year_):
-    
-    '''
-        assumes departures_ is a dic storing number of departures by group of the year year_
-        returns a list of dics having keys : sex, age, number and group
-        
-    '''
-    new_employees = []
-
-    for g in departures_:
-        temp = {'sex':'male', 'age' : 30, 'number': 0.5 * departures_[g],'group':g}
-        new_employees.append(temp)
-        temp = {'sex':'female', 'age' : 21, 'number': 0.5 * departures_[g],'group':g}
-        new_employees.append(temp)
-    
-    return new_employees
-
-
-
-def law_mar1(age, sex, type):
-    """
-    Return the probability of getting maried  during the following year at a given age for a given sex
-
-    """
-    if sex == 'male':
-        if type=='active':
-            if age >= 25 and age <= 54:
-                return 0.1
-            else :
-                return 0
-        else:
-            return 0
-    
-    if sex == 'female':
-        if type=='active':
-            if age >= 25 and age <= 54:
-                return 0.15
-            else :
-                return 0
-        else:
-            return 0
+from pop_projection import sample_laws as sl
 
 # Path for input data
 path ="./pop_projection/data/"
@@ -80,7 +38,7 @@ color_females = (0/255,128/255,0/255)
 for t in tables:
 
     # Projection of population
-    numbers_ = eff.simulerEffectif(employees, spouses, children, t, MAX_ANNEES, law_replacement_ = law_replacement1, law_marriage_=law_mar1)
+    numbers_ = eff.simulerEffectif(employees, spouses, children, t, MAX_ANNEES, law_replacement_ = sl.law_replacement1, law_marriage_=sl.law_mar1)
 
     # Pyramid of spouses
     ind_spo_numbers = eff.individual_spouses_numbers(numbers_[1])
