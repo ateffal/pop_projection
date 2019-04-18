@@ -10,6 +10,8 @@ Created on Mon May  7 14:08:56 2018
 import pandas as pd
 from pop_projection import Actuariat as act
 import inspect
+import matplotlib.pyplot as plt
+import numpy as np
 
 def retire(age):
     if age >= 55:
@@ -890,7 +892,70 @@ def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     return Leaving
 
 
+def plot_pyramide_spouses(numbers_, year_, MAX_YEARS, color_males = (149/255,125/255,98/255), color_females = (0/255,128/255,0/255)):
+
+    # Check that year is greater than 0 and smaller than MAX_YEARS
+    if year_ < 1 or year_ > MAX_YEARS:
+        print("year_ maust be greater than 0 and smaller than MAX_YEARS !")
+        return
     
+    # Setting ages boundaries
+    min_age_ = 19
+    max_age_ = 100
+
+    # color_males = (149/255,125/255,98/255) 
+    # color_females = (0/255,128/255,0/255)
+
+    # Getting individual numbers of spouses
+    ind_spo_numbers = individual_spouses_numbers(numbers_)
+
+    #Getting lives numbers for spouses
+    spouses_proj = ind_spo_numbers[0]
+    
+    # Group lives numbers at year (year_-1) by age and sex
+    emp_grouped = spouses_proj.groupby(['age','sex'], as_index=False)['year_'+str((year_-1))].sum()
+        
+    #update colum age to be age at year (year_-1)
+    emp_grouped['age'] = emp_grouped['age'] - MAX_YEARS + (year_-1)
+    
+    # Getting just ages between defined boudaries
+    emp_grouped = emp_grouped.loc[(emp_grouped['age'] < max_age_) & (emp_grouped['age'] > min_age_)]
+    
+    # Pivot table : lines year_ - 1 ; columns sex
+    table = pd.pivot_table(emp_grouped, values='year_'+str((year_-1)), index=['age'],  columns=['sex'], aggfunc=np.sum)
+    
+    # Replace nas with 0
+    table = table.fillna(0)
+    
+    #calculate percentage
+    if 'male' in list(table.columns):
+        table['male'] = table['male']/np.sum(table['male'])
+
+    if 'female' in list(table.columns):
+        table['female'] = table['female']/np.sum(table['female'])
+    
+    if 'female' in list(table.columns):
+        table['female'] = table['female'] * (-1)
+    
+    # plt.subplot(len(tables) , 1, plot_num)
+    # plt.subplots_adjust(hspace = 0.5)
+    plt.xlim(-0.05,0.05)
+    # plt.title('Mortality table ' + t)
+    
+    if 'male' in list(table.columns):
+        values = [0] * (max_age_ - min_age_ - 1)
+        for i in range(len(table['male'])):
+            values[table.index[i] - min_age_ - 1] = table.iloc[i]['male']
+        p_male = plt.barh(list(range(min_age_ + 1, max_age_)), values, color = color_males )
+    
+    if 'female' in list(table.columns):
+        for i in range(len(table['female'])):
+            values[table.index[i] - min_age_ - 1] = table.iloc[i]['female']
+        p_female = plt.barh(list(range(min_age_ + 1, max_age_)), values, color = color_females)
+
+    
+
+    plt.show()
     
 
     
