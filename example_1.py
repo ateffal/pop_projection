@@ -1,9 +1,8 @@
 
 # coding: utf-8
 
-# # Plotting Evolution of Ages pyramid over years
+# # Global numbers by year
 
-# In[6]:
 
 
 # Import necessary packages

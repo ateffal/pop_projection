@@ -5,6 +5,8 @@ Created on Wed Dec 12 08:35:33 2018
 @author: a.teffal
 """
 
+# Spouses Ages Pyramid by mortality table at year 50
+
 from pop_projection import Effectifs as eff
 import pandas as pd
 import numpy as np
@@ -82,7 +84,7 @@ for t in tables:
     plot_num += 1
     plt.figlegend((p_male[0], p_female[0]), ('Men', 'Women'), loc = 'lower center')
 
-plt.suptitle('Spouses Ages Pyramid by mortality table')
+plt.suptitle('Spouses Ages Pyramid by mortality table at year 50')
 plt.show()
 
 

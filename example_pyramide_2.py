@@ -5,6 +5,8 @@ Created on Wed Dec 12 08:35:33 2018
 @author: a.teffal
 """
 
+# Pyramides of spouses at years 1, 10, 20, ..., 50
+
 from pop_projection import Effectifs as eff
 import pandas as pd
 import numpy as np
