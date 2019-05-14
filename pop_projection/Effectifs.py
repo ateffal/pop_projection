@@ -9,7 +9,7 @@ Created on Mon May  7 14:08:56 2018
 
 import pandas as pd
 # from pop_projection import Actuariat as act
-import Actuariat as act
+from . import Actuariat as act
 import inspect
 import matplotlib.pyplot as plt
 import numpy as np
