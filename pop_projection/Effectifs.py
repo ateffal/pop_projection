@@ -961,3 +961,34 @@ def plot_pyramide_spouses(numbers_, year_, MAX_YEARS, color_males = (149/255,125
 
     
 
+def new_employees(employees_proj_, MAX_YEARS):
+    """ 
+        Assumes parameter employees_proj_ is of the form of that returned by simulerEffectif
+  
+        Parameters: 
+            employees_proj_ (dic): a dic containing projected employees
+            MAX_YEARS (int) : number of years of prjection
+        Returns: 
+            DataFrame: A DataFrame containing new employees entering the population
+    """
+
+    ids = []
+    data = []
+    entrances = []
+    for emp in employees_proj_:
+        if employees_proj_[emp]['entrance'] > 0:
+            ids.append(emp)
+            entrances.append(employees_proj_[emp]['entrance'])
+            data.append(employees_proj_[emp]['data'])
+    
+    # create the dataframes
+    df_new_employees = pd.DataFrame()       
+    df_new_employees['id'] = ids
+    df_new_employees['entrance'] = entrances
+
+    # data columns
+    cols_data = data[0].keys()
+    for c in cols_data:
+        df_new_employees[c] = [d[c] for d in data]
+
+    return df_new_employees

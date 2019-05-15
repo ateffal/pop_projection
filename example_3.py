@@ -20,6 +20,9 @@ def law_replacement1(departures_, year_):
         returns a list of dics having keys : key, number and data
         
     '''
+
+    print(departures_)
+
     def nouveaux(g_):
         structure_nouveaux = {'1':[25,25,0.8],'2':[25,25,0.8],'3':[25,25,0.6],'4':[29,29,0.6],'5':[28,28,0.5,],
         '6':[28,28,0.5],'7':[33,33,0.5],'8':[38,38,0.5],'9':[38,38,0.5],'10':[47,47,0.5],'11':[49,49,0.5]}
@@ -41,9 +44,10 @@ def law_replacement1(departures_, year_):
     new_employees = []
 
     for g in departures_:
+
         # add a male
         if nouveaux(g)[2] > 0:
-            temp = {'key':'male_groupe_' + str(g) + 'year_' + str(year_), 
+            temp = {'key':'male_groupe_' + str(g) + '_year_' + str(year_), 
             'number':nouveaux(g)[2]*departures_[g]*taux_rempl(year_, g),'data':['active', 'male', 'not married', nouveaux(g)[0], year_,g,'01/01/'+str((2018+year_+1)),'31/12/'+str((2018+year_-nouveaux(g)[0]))]}
             new_employees.append(temp)
 
@@ -66,13 +70,16 @@ children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
 
 # Projection of population
 # Number of years to project
-MAX_ANNEES = 50
+MAX_ANNEES = 3
 
 # Projection
 numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = law_replacement1)
 
+# Getting individual numbers projection for employees
 lives, deaths, resignation, type_ = eff.individual_employees_numbers(numbers_[0])
 
-# printing results
-print(lives)
+# printing new employees
+df = eff.new_employees(numbers_[0], MAX_ANNEES)
+print(df.tail(10))
+
 
