@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # # Projecting slaries using projected individual numbers
@@ -10,26 +9,27 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def salaries_new_emp_1(new_employees):
-    """ 
-        Returns a data frame containing for each new employee his salary the he entered 
+    """
+        Returns a data frame containing for each new employee his salary the he entered
         the population.
-  
-        Parameters: 
-            new_employees (DataFrame): a DataFrame containing all column data for new employees 
+
+        Parameters:
+            new_employees (DataFrame): a DataFrame containing all column data for new employees
             plus a column entrance (the year this new employee entered the population).
-        
-        Returns: 
+
+        Returns:
             DataFrame: A DataFrame containing projected salaries for each new employee.
     """
 
     ids = list(new_employees['id'])
-    salaries = [0]*len(ids)
+    salaries = [0] * len(ids)
 
     i = 0
     for e in list(new_employees['entrance']):
-        salaries[i] = 1000 * (1+0.02)**e
-        i = i+1
+        salaries[i] = 1000 * (1 + 0.02) ** e
+        i = i + 1
 
     temp_df = pd.DataFrame()
 
@@ -41,25 +41,26 @@ def salaries_new_emp_1(new_employees):
 
 # Define law of replacement
 def law_replacement1(departures_, year_):
-    
     '''
         assumes departures_ is a dic storing number of departures by group of the year year_
         returns a list of dics having keys : key, number and data
-        
+
     '''
 
     def nouveaux(g_):
-        structure_nouveaux = {'1':[25,25,0.8],'2':[25,25,0.8],'3':[25,25,0.6],'4':[29,29,0.6],'5':[28,28,0.5,],
-        '6':[28,28,0.5],'7':[33,33,0.5],'8':[38,38,0.5],'9':[38,38,0.5],'10':[47,47,0.5],'11':[49,49,0.5]}
+        structure_nouveaux = {'1': [25, 25, 0.8], '2': [25, 25, 0.8], '3': [25, 25, 0.6], '4': [29, 29, 0.6],
+                              '5': [28, 28, 0.5, ],
+                              '6': [28, 28, 0.5], '7': [33, 33, 0.5], '8': [38, 38, 0.5], '9': [38, 38, 0.5],
+                              '10': [47, 47, 0.5], '11': [49, 49, 0.5]}
 
         if str(g_) in structure_nouveaux:
             return structure_nouveaux[str(g_)]
         else:
             return [30, 30, 1.0]
 
-    def taux_rempl(y, g_ = '0'):
-        if y <= 3 :
-            if str(g_) in ['1','2','3','5','6','7']:
+    def taux_rempl(y, g_='0'):
+        if y <= 3:
+            if str(g_) in ['1', '2', '3', '5', '6', '7']:
                 return 0.64
             else:
                 return 1
@@ -69,47 +70,98 @@ def law_replacement1(departures_, year_):
     new_employees = []
 
     for g in departures_:
-        if departures_[g] > 0 :
+        if departures_[g] > 0:
             # add a male
             if nouveaux(g)[2] > 0:
-                temp = {'key':'male_groupe_' + str(g) + '_year_' + str(year_), 
-                'number':nouveaux(g)[2]*departures_[g]*taux_rempl(year_, g),'data':['active', 'male', 'not married', nouveaux(g)[0], year_,g,'01/01/'+str((2018+year_+1)),'31/12/'+str((2018+year_-nouveaux(g)[0]))]}
+                temp = {'key': 'male_groupe_' + str(g) + '_year_' + str(year_),
+                        'number': nouveaux(g)[2] * departures_[g] * taux_rempl(year_, g),
+                        'data': ['active', 'male', 'not married', nouveaux(g)[0], year_, g,
+                                 '01/01/' + str((2018 + year_ + 1)), '31/12/' + str((2018 + year_ - nouveaux(g)[0]))]}
                 new_employees.append(temp)
 
             # add a female
             if nouveaux(g)[2] < 1:
-                temp = {'key':'female_groupe_' + str(g) + 'year_' + str(year_), 
-                'number':(1-nouveaux(g)[2])*departures_[g]*taux_rempl(year_, g),'data':['active', 'female', 'not married', nouveaux(g)[1], year_,g,'01/01/'+str((2018+year_+1)),'31/12/'+str((2018+year_-nouveaux(g)[1]))]}
+                temp = {'key': 'female_groupe_' + str(g) + 'year_' + str(year_),
+                        'number': (1 - nouveaux(g)[2]) * departures_[g] * taux_rempl(year_, g),
+                        'data': ['active', 'female', 'not married', nouveaux(g)[1], year_, g,
+                                 '01/01/' + str((2018 + year_ + 1)), '31/12/' + str((2018 + year_ - nouveaux(g)[1]))]}
                 new_employees.append(temp)
-    
+
     return new_employees
 
+
 # Path for input data
-path ="./pop_projection/data/"
+path = "./pop_projection/data/"
 
 # Loading data
-employees = pd.read_csv(path + "employees.csv",sep=";", decimal = ",")
-spouses = pd.read_csv(path + "spouses.csv",sep=";", decimal = ",")
-children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
+employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")
+spouses = pd.read_csv(path + "spouses.csv", sep=";", decimal=",")
+children = pd.read_csv(path + "children.csv", sep=";", decimal=",")
 
 # Loading salaries
-salaries = pd.read_csv(path + "salaries.csv",sep=";", decimal = ",")
-
+salaries = pd.read_csv(path + "salaries.csv", sep=";", decimal=",")
 
 # Projection of population
 # Number of years to project
 MAX_ANNEES = 20
 
 # Projection
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = law_replacement1)
+numbers_ = eff.simulerEffectif(
+    employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_=law_replacement1)
 
 
-def project_contributions(projected_salaries, rate_contribution, MAX_YEARS):
+def project_contributions(projected_salaries, contribution_rate, MAX_YEARS):
+    """
+            Returns a DataFrame containing annual projection of the contributions.
 
-    return None
+            Parameters:
+                projected_salaries (DataFrame): a DataFrame containing projected salaries.
+
+                contribution_rate (Number, DataFrame or Function) : Number, DataFrame or Function giving the rate of contribution.
+                If it's a DataFrame, then it's an annual rate of contribution and therefore the DataFrame has two columns :
+                year and rate.
+                If it's a function, then it must accept as parameters all the data columns of projected_salaries and return a rate
+                of contribution.
+
+                MAX_YEARS (int): Number of years of projection.
+
+    """
+
+    # copy the Dataframe so we have the same structure
+    df_contributions = projected_salaries.copy()
+
+    # Set id as index in projected_salaries
+    projected_salaries = projected_salaries.set_index('id')
+
+    # Get the number of rows
+    n = len(df_contributions)
+
+    # Get years columns
+    years_columns = [c for c in df_contributions.columns if c.startswith('year_')]
+
+    # Project contributions
+    for i in range(n):
+        for c in years_columns:
+            # year
+            y = int(c[5:])
+            # id
+            id_ = df_contributions.loc[i, 'id']
+            # Calculate contribution
+            if isinstance(contribution_rate, (int,float)):
+                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate
+            elif isinstance(contribution_rate, pd.DataFrame):
+                contribution_rate.set_index('year')
+                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate.loc[y,'rate']
+            else:
+                df_contributions.loc[i, c]=0
 
 
-def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp = None, sal_evol = 0):
+
+
+    return df_contributions
+
+
+def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None, sal_evol=0):
     """ 
         Returns a DataFrame containing annual projection of the salaries.
   
@@ -140,8 +192,8 @@ def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp = No
 
     # if salaries_new_emp is not None, get salaries of new employees and add them to salaries
     if not salaries_new_emp is None:
-        salaries_new_emp_df = salaries_new_emp_1(df_new )
-        salaries = pd.concat([salaries,salaries_new_emp_df] )
+        salaries_new_emp_df = salaries_new_emp_1(df_new)
+        salaries = pd.concat([salaries, salaries_new_emp_df])
 
     print(salaries)
 
@@ -149,10 +201,10 @@ def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp = No
     lives, deaths, resignation, type_ = eff.individual_employees_numbers(employees_proj_)
 
     # Join lives and salaries
-    df_temp = lives.join(salaries.set_index('id'),on='id', how='inner', lsuffix='_lives', rsuffix='_salaries')
+    df_temp = lives.join(salaries.set_index('id'), on='id', how='inner', lsuffix='_lives', rsuffix='_salaries')
 
     # Get years columns
-    years_columns = [c  for c in df_temp.columns if c.startswith('year_')]
+    years_columns = [c for c in df_temp.columns if c.startswith('year_')]
 
     type_ = type_.set_index('id')
 
@@ -165,22 +217,23 @@ def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp = No
             # year
             y = int(c[5:])
             # id 
-            id_ = df_temp.loc[i,'id']
+            id_ = df_temp.loc[i, 'id']
             # salaries are not zero for actives only
             if type_.loc[id_, c] == 'active':
-                df_temp.loc[i, c] = df_temp.loc[i, c] * df_temp.loc[i, 'salary']*((1+sal_evol)**y)
+                df_temp.loc[i, c] = df_temp.loc[i, c] * df_temp.loc[i, 'salary'] * ((1 + sal_evol) ** y)
             else:
                 df_temp.loc[i, c] = 0
-
-
 
     return df_temp[df_temp.columns[:-1]]
 
 
-df = project_salaries(numbers_[0],salaries, MAX_ANNEES, salaries_new_emp_1, 0.035)
+df_salaries = project_salaries(numbers_[0], salaries, MAX_ANNEES, salaries_new_emp_1, 0.035)
 # print(df)
 
-df.to_csv('asupprimer.csv', sep=';', index=False, decimal=',')
 
+rate_contr = pd.read_csv(path + "rate_contr.csv", sep=";", decimal=",")
 
+df_contr = project_contributions(df_salaries,rate_contr,20)
 
+df_salaries.to_csv('asupprimer.csv', sep=';', index=False, decimal=',')
+df_contr.to_csv('contributions.csv', sep=';', index=False, decimal=',')
