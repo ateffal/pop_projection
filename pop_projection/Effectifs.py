@@ -328,12 +328,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
         else:
             tt = spouses_proj[(employee_id, rang)]['lives'][year_]
-            if  tt > 0:
-                print('avant : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
+            # if  tt > 0:
+                # print('avant : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
             
-            if tt > 0:
-                print('apres : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
+            # if tt > 0:
+                # print('apres : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
     
     
     def add_new_child(employee_id, rang_, year_):
@@ -975,11 +975,17 @@ def new_employees(employees_proj_, MAX_YEARS):
     ids = []
     data = []
     entrances = []
+    n_new_employees = 0
+
     for emp in employees_proj_:
         if employees_proj_[emp]['entrance'] > 0:
             ids.append(emp)
             entrances.append(employees_proj_[emp]['entrance'])
             data.append(employees_proj_[emp]['data'])
+            n_new_employees = n_new_employees +1
+    
+    if n_new_employees == 0:
+        return None
     
     # create the dataframes
     df_new_employees = pd.DataFrame()       

@@ -5,10 +5,15 @@
 
 # Import necessary packages
 from pop_projection import Effectifs as eff
+from pop_projection import Cashflows as cf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import inspect
+import time
 
+
+print('Début : ', time.asctime( time.localtime(time.time())))
 
 def salaries_new_emp_1(new_employees):
     """
@@ -91,7 +96,7 @@ def law_replacement1(departures_, year_):
 
 
 # Path for input data
-path = "./pop_projection/data/"
+path = "../data_2018/"
 
 # Loading data
 employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")
@@ -101,139 +106,48 @@ children = pd.read_csv(path + "children.csv", sep=";", decimal=",")
 # Loading salaries
 salaries = pd.read_csv(path + "salaries.csv", sep=";", decimal=",")
 
+# Loading pensions
+pensions = pd.read_csv(path + "pensions2.csv", sep=";", decimal=",")
+
+print('Chargement données : ', time.asctime( time.localtime(time.time())))
+
 # Projection of population
 # Number of years to project
-MAX_ANNEES = 20
+MAX_ANNEES = 120
 
 # Projection
 numbers_ = eff.simulerEffectif(
-    employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_=law_replacement1)
+    employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_=None)
 
+print('Simulation effectifs : ', time.asctime( time.localtime(time.time())))
 
-def project_contributions(projected_salaries, contribution_rate, MAX_YEARS):
-    """
-            Returns a DataFrame containing annual projection of the contributions.
+df_salaries = cf.project_salaries(numbers_[0], salaries, MAX_ANNEES, salaries_new_emp_1, 0.035)
 
-            Parameters:
-                projected_salaries (DataFrame): a DataFrame containing projected salaries.
+print('Projection salaires : ', time.asctime( time.localtime(time.time())))
 
-                contribution_rate (Number, DataFrame or Function) : Number, DataFrame or Function giving the rate of contribution.
-                If it's a DataFrame, then it's an annual rate of contribution and therefore the DataFrame has two columns :
-                year and rate.
-                If it's a function, then it must accept as parameters all the data columns of projected_salaries and return a rate
-                of contribution.
+# rate_contr = pd.read_csv(path + "rate_contr.csv", sep=";", decimal=",")
 
-                MAX_YEARS (int): Number of years of projection.
+def rate_contr(sex, year):
+    if year >5:
+        return 0
+    if sex=='male':
+        return 0
+    else:
+        return 0.1
 
-    """
+df_contr = cf.project_contributions(df_salaries,rate_contr,20)
 
-    # copy the Dataframe so we have the same structure
-    df_contributions = projected_salaries.copy()
+print('Projection contributions : ', time.asctime( time.localtime(time.time())))
 
-    # Set id as index in projected_salaries
-    projected_salaries = projected_salaries.set_index('id')
+def f_pension(data, salaries , year):
+    return 1000
 
-    # Get the number of rows
-    n = len(df_contributions)
+df_pensions = cf.project_pensions(numbers_[0], df_salaries, pensions, f_pension,MAX_ANNEES,0.0275)
 
-    # Get years columns
-    years_columns = [c for c in df_contributions.columns if c.startswith('year_')]
+print('Projection pensions : ', time.asctime( time.localtime(time.time())))
 
-    # Project contributions
-    for i in range(n):
-        for c in years_columns:
-            # year
-            y = int(c[5:])
-            # id
-            id_ = df_contributions.loc[i, 'id']
-            # Calculate contribution
-            if isinstance(contribution_rate, (int,float)):
-                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate
-            elif isinstance(contribution_rate, pd.DataFrame):
-                contribution_rate.set_index('year')
-                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate.loc[y,'rate']
-            else:
-                df_contributions.loc[i, c]=0
+df_salaries.to_csv('./results/projected_salaries.csv', sep=';', index=False, decimal=',')
+df_contr.to_csv('./results/projected_contributions.csv', sep=';', index=False, decimal=',')
+df_pensions.to_csv('./results/projected_penions.csv', sep=';', index=False, decimal=',')
 
-
-
-
-    return df_contributions
-
-
-def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None, sal_evol=0):
-    """ 
-        Returns a DataFrame containing annual projection of the salaries.
-  
-        Parameters: 
-            employees_proj_ (dic): a dic containing projected employees in the form of those 
-                                   returned by simulerEffectif.
-                                   
-            salaries (DataFrame) : A DataFrame containing for each employee (including new employees if 
-                                   salaries_new_emp is None ) his salary at year 0 (at year of entrance 
-                                   if it's a new employee).
-
-            MAX_YEARS (int): Number of years of projection.
-
-        Optional parameters:
-            salaries_new_emp (function) : A function accepting as parameter a DataFrame containing all 
-                                          columns data for new employees plus a column 'entrance' (the year this new 
-                                          employee entered  the population) and returning a DataFrame containing 
-                                          projected salaries for each new employee.
-
-        sal_evol (numeric) : annual increase of the salaire. Salary at year i+1 = (Salary at year i)*(1+sal_evol)
-        
-        Returns: 
-            DataFrame: A DataFrame containing projected salaries for each employee
-    """
-
-    # Getting new employees
-    df_new = eff.new_employees(numbers_[0], MAX_YEARS)
-
-    # if salaries_new_emp is not None, get salaries of new employees and add them to salaries
-    if not salaries_new_emp is None:
-        salaries_new_emp_df = salaries_new_emp_1(df_new)
-        salaries = pd.concat([salaries, salaries_new_emp_df])
-
-    print(salaries)
-
-    # Getting individual projected numbers for employees
-    lives, deaths, resignation, type_ = eff.individual_employees_numbers(employees_proj_)
-
-    # Join lives and salaries
-    df_temp = lives.join(salaries.set_index('id'), on='id', how='inner', lsuffix='_lives', rsuffix='_salaries')
-
-    # Get years columns
-    years_columns = [c for c in df_temp.columns if c.startswith('year_')]
-
-    type_ = type_.set_index('id')
-
-    # Get the number of rows
-    n = len(df_temp)
-
-    # Project salary
-    for i in range(n):
-        for c in years_columns:
-            # year
-            y = int(c[5:])
-            # id 
-            id_ = df_temp.loc[i, 'id']
-            # salaries are not zero for actives only
-            if type_.loc[id_, c] == 'active':
-                df_temp.loc[i, c] = df_temp.loc[i, c] * df_temp.loc[i, 'salary'] * ((1 + sal_evol) ** y)
-            else:
-                df_temp.loc[i, c] = 0
-
-    return df_temp[df_temp.columns[:-1]]
-
-
-df_salaries = project_salaries(numbers_[0], salaries, MAX_ANNEES, salaries_new_emp_1, 0.035)
-# print(df)
-
-
-rate_contr = pd.read_csv(path + "rate_contr.csv", sep=";", decimal=",")
-
-df_contr = project_contributions(df_salaries,rate_contr,20)
-
-df_salaries.to_csv('asupprimer.csv', sep=';', index=False, decimal=',')
-df_contr.to_csv('contributions.csv', sep=';', index=False, decimal=',')
+print('Fin : ', time.asctime( time.localtime(time.time())))
