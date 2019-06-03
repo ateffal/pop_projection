@@ -11,9 +11,9 @@ import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 
-def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None, sal_evol=0):
 
-    """ 
+def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None, sal_evol=0):
+    """
         Returns a DataFrame containing annual projection of the salaries.
   
         Parameters: 
@@ -51,12 +51,14 @@ def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None
     indiv_numbers = eff.individual_employees_numbers(employees_proj_)
     lives = indiv_numbers[0]
     type_ = indiv_numbers[3]
-    #lives = eff.individual_employees_numbers(employees_proj_)[0]
-    #type_ = eff.individual_employees_numbers(employees_proj_)[3]
+    # lives = eff.individual_employees_numbers(employees_proj_)[0]
+    # type_ = eff.individual_employees_numbers(employees_proj_)[3]
 
     # Join lives and salaries
     # df_temp = lives.join(salaries.set_index('id'), on='id', how='inner', lsuffix='_lives', rsuffix='_salaries')
     df_temp = lives.merge(salaries, on='id', how='inner')
+
+    df_temp.to_csv('./results/df_temp_avant.csv', sep=';', index=False, decimal=',')
 
     # Get years columns
     years_columns = [c for c in df_temp.columns if c.startswith('year_')]
@@ -70,14 +72,19 @@ def project_salaries(employees_proj_, salaries, MAX_YEARS, salaries_new_emp=None
     for i in range(n):
         # id 
         id_ = df_temp.loc[i, 'id']
+
+        # year_entrance
+        year_entrance = int(employees_proj_[id_]['entrance'])
         for c in years_columns:
             # year
             y = int(c[5:])
             # salaries are not zero for actives only
             if type_.loc[id_, c] == 'active':
-                df_temp.loc[i, c] = df_temp.loc[i, c] * df_temp.loc[i, 'salary'] * ((1 + sal_evol) ** y)
+                df_temp.loc[i, c] = df_temp.loc[i, c] * df_temp.loc[i, 'salary'] * ((1 + sal_evol) ** (y-year_entrance))
             else:
                 df_temp.loc[i, c] = 0
+
+    df_temp.to_csv('./results/df_temp_apres.csv', sep=';', index=False, decimal=',')
 
     return df_temp[df_temp.columns[:-1]]
 
@@ -119,13 +126,13 @@ def project_contributions(projected_salaries, contribution_rate, MAX_YEARS):
         for c in years_columns:
             # year
             y = int(c[5:])
-            
+
             # Calculate contribution
-            if isinstance(contribution_rate, (int,float)):
+            if isinstance(contribution_rate, (int, float)):
                 df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate
             elif isinstance(contribution_rate, pd.DataFrame):
                 contribution_rate.set_index('year')
-                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate.loc[y,'rate']
+                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate.loc[y, 'rate']
             elif callable(contribution_rate):
                 # Get parameters of the function contribution_rate
                 params_ = inspect.getfullargspec(contribution_rate)[0]
@@ -133,18 +140,15 @@ def project_contributions(projected_salaries, contribution_rate, MAX_YEARS):
                     args_ = tuple([df_contributions.loc[i, z] for z in params_[:-1]]) + (y,)
                 else:
                     args_ = tuple([df_contributions.loc[i, z] for z in params_])
-                df_contributions.loc[i, c]=projected_salaries.loc[id_, c] * contribution_rate(*args_)
+                df_contributions.loc[i, c] = projected_salaries.loc[id_, c] * contribution_rate(*args_)
             else:
-                df_contributions.loc[i, c]=0
-
-
-
-
+                df_contributions.loc[i, c] = 0
 
     return df_contributions
 
 
-def project_pensions(employees_proj_, projected_salaries, pensions_retirees, pension_new_retiree, MAX_YEARS, pen_evol=0):
+def project_pensions(employees_proj_, projected_salaries, pensions_retirees, pension_new_retiree, MAX_YEARS,
+                     pen_evol=0):
     """ 
         Returns a DataFrame containing annual projection of the pensions.
   
@@ -174,18 +178,18 @@ def project_pensions(employees_proj_, projected_salaries, pensions_retirees, pen
     indiv_numbers = eff.individual_employees_numbers(employees_proj_)
     lives = indiv_numbers[0]
     types_ = indiv_numbers[3]
-    #lives = eff.individual_employees_numbers(employees_proj_)[0]
-    #type_ = eff.individual_employees_numbers(employees_proj_)[3]
+    # lives = eff.individual_employees_numbers(employees_proj_)[0]
+    # type_ = eff.individual_employees_numbers(employees_proj_)[3]
 
     # Join lives and pensions
-    #df_temp = lives.join(pensions_retirees.set_index('id'), on='id', how='left', lsuffix='_lives', rsuffix='_pensions_retirees')
+    # df_temp = lives.join(pensions_retirees.set_index('id'), on='id', how='left', lsuffix='_lives', rsuffix='_pensions_retirees')
     df_temp = lives.merge(pensions_retirees, on='id', how='left')
 
     # Get years columns
     years_columns = [c for c in df_temp.columns if c.startswith('year_')]
 
     types_ = types_.set_index('id')
-    
+
     projected_salaries = projected_salaries.set_index('id')
 
     # Get the number of rows
@@ -193,25 +197,42 @@ def project_pensions(employees_proj_, projected_salaries, pensions_retirees, pen
 
     # Project pensions
     for i in range(n):
-       
+
         # id 
         id_ = df_temp.loc[i, 'id']
-        
+
         # actives
-        if types_.loc[id_, 'year_0'] == 'active' or types_.loc[id_, 'year_0'] == '': # for new employees type is empty at year 0
-            for c in years_columns:
-                # year
-                y = int(c[5:])
-                # pensions are payed starting from retirement only
-                if types_.loc[id_, c] == 'retired':
-                    # get data for that id from employees_proj_
-                    data_ = employees_proj_[id_]['data']
-                    #salaries_ = [projected_salaries.loc[id_,yy] for yy in years_columns]
-                    salaries_ = list(projected_salaries.loc[id_,years_columns])
-                    df_temp.loc[i, c] = df_temp.loc[i, c] * pension_new_retiree(data=data_, salaries = salaries_, year = y) * ((1 + pen_evol) ** y)
-                else:
+        if types_.loc[id_, 'year_0'] == 'active' or types_.loc[id_, 'year_0'] == '':  # for new employees type is empty at year 0
+            # get data for that id from employees_proj_
+            data_ = employees_proj_[id_]['data']
+            salaries_ = list(projected_salaries.loc[id_, years_columns])
+            types__ = list(types_.loc[id_, years_columns])
+            # year_retirement = types_.index('retired')
+            pension_ret = pension_new_retiree(data=data_, salaries=salaries_,
+                                              types_=types__)
+
+            # year of retirement
+            if 'retired' in types__:
+                year_ret = types__.index('retired')
+                for c in years_columns:
+                    # year
+                    y = int(c[5:])
+                    # pensions are payed starting from retirement only
+                    if types_.loc[id_, c] == 'retired':
+                        if y == year_ret:
+                            # df_temp.loc[i, c] = df_temp.loc[i, c] * pension_ret
+                            df_temp.loc[i, c] = pension_ret
+                        else:
+                            # df_temp.loc[i, c] = df_temp.loc[i, c] * pension_ret * ((1 + pen_evol) ** (y-year_ret))
+                            df_temp.loc[i, c] = pension_ret * ((1 + pen_evol) ** (y-year_ret))
+                        
+                    else:
+                        df_temp.loc[i, c] = 0
+            else:
+                for c in years_columns:
                     df_temp.loc[i, c] = 0
-        else: # retired
+
+        else:  # retired
             for c in years_columns:
                 # year
                 y = int(c[5:])
