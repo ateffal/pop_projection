@@ -110,7 +110,8 @@ def verifyCols(data_, cols):
     return temp
 
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
-                    law_resignation_ = None, law_marriage_ = None, law_birth_ = None, law_replacement_ =  None):
+                    law_resignation_ = None, law_marriage_ = None, law_birth_ = None, birth_type = ['active', 'retired'],
+                    law_replacement_ =  None):
     
     """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
         mortality, retirement, resignation, marriage, birth and replacement.
@@ -336,7 +337,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 # print('apres : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
     
     
-    def add_new_child(employee_id, rang_, year_):
+    def add_new_child(employee_id, rang_, year_, rang_child):
         """Adds a new child in the children_proj dic.
         
         Args:
@@ -368,12 +369,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         type_temp = employees_proj[employee_id]["type"][i]
         
         #if not already added add it
-        if not (employee_id, 1) in children_proj:
-            children_proj[(employee_id, 1)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
+        if not (employee_id, rang_child) in children_proj:
+            children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
-        else:
-            children_proj[(employee_id, 1)]['lives'][year_] = children_proj[(employee_id, 1)]['lives'][year_] + live_emp * probBirth
+        # else:
+        #    children_proj[(employee_id, 1)]['lives'][year_] = children_proj[(employee_id, 1)]['lives'][year_] + live_emp * probBirth
         
         
     # main loop
@@ -515,9 +516,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             spouse["deaths"][i] = spouse["deaths"][i] + spouse["lives"][i-1] * death
             
             #handling births for active and retired only
-            if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
-                add_new_child(id_s[0],id_s[1], i)
-            
+            # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
+            #     add_new_child(id_s[0],id_s[1], i)
+
+            if spouse["type"][i] in birth_type:
+                add_new_child(id_s[0],id_s[1], i, 500 + i)
+
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
             
@@ -607,6 +611,7 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     effectif_retraites = [0] * MAX_YEARS
     effectif_conjoints_retraites = [0] * MAX_YEARS
     effectif_enfants_retraites = [0] * MAX_YEARS
+    effectif_enfants_ayant_cause = [0] * MAX_YEARS
 
     # number of quitters per year
     effectif_demissions = [0] * MAX_YEARS
@@ -620,6 +625,7 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     effectif_deces_retraites = [0] * MAX_YEARS
     effectif_deces_conjoints_retraites = [0] * MAX_YEARS
     effectif_deces_enfants_retraites = [0] * MAX_YEARS
+    effectif_deces_enfants_ayant_cause = [0] * MAX_YEARS
 
     # number of living widows
     effectif_ayants_cause = [0] * MAX_YEARS
@@ -655,20 +661,25 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
             if a['type'][i] == 'retired':
                 effectif_enfants_retraites[i] = effectif_enfants_retraites[i] + a['lives'][i]
                 effectif_deces_enfants_retraites[i] = effectif_deces_enfants_retraites[i] + a['deaths'][i]
+
+            if a['type'][i] == 'widow':
+                effectif_enfants_ayant_cause[i] = effectif_enfants_ayant_cause[i] + a['lives'][i]
+                effectif_deces_enfants_ayant_cause[i] = effectif_deces_enfants_ayant_cause[i] + a['deaths'][i]
             
     # construct DataFrame of projected numbers
     totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
     totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
-    totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites)]
+    totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites, effectif_enfants_ayant_cause)]
 
     Data = {'Year':list(range(MAX_YEARS)), 'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
             'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
             'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
-            'effectif_enfants_retraites' : effectif_enfants_retraites, 'Total Children' : totalChildren}
+            'effectif_enfants_retraites' : effectif_enfants_retraites, 'effectif_enfants_ayant_cause' : effectif_enfants_ayant_cause,'Total Children' : totalChildren}
 
     Effectifs = pd.DataFrame(data=Data,
                 columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause',
-                         'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 'effectif_enfants_retraites', 'Total Children' ]) 
+                         'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 
+                         'effectif_enfants_retraites', 'effectif_enfants_ayant_cause','Total Children' ]) 
     return Effectifs
     
 def individual_employees_numbers(employees_proj_): 
@@ -718,10 +729,22 @@ def individual_employees_numbers(employees_proj_):
     df_types['id'] = ids
     cols_data = data[0].keys()
     for c in cols_data:
-        df_lives[c] = [d[c] for d in data]
-        df_deaths[c] = [d[c] for d in data]
-        df_res[c] = [d[c] for d in data]
-        df_types[c] = [d[c] for d in data]
+        temp = []
+        for d in data:
+            if c in d:
+                temp.append(d[c])
+            else:
+                temp.append('')
+        
+        df_lives[c] = temp
+        df_deaths[c] = temp
+        df_types[c] = temp
+        df_res[c] = temp
+
+        # df_lives[c] = [d[c] for d in data]
+        # df_deaths[c] = [d[c] for d in data]
+        # df_res[c] = [d[c] for d in data]
+        # df_types[c] = [d[c] for d in data]
 
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[emp][year] for emp in range(n_emp)]
@@ -781,9 +804,20 @@ def individual_spouses_numbers(spouses_proj_):
     # data columns
     cols_data = data[0].keys()
     for c in cols_data:
-        df_lives[c] = [d[c] for d in data]
-        df_deaths[c] = [d[c] for d in data]
-        df_types[c] = [d[c] for d in data]
+        temp = []
+        for d in data:
+            if c in d:
+                temp.append(d[c])
+            else:
+                temp.append('')
+        
+        df_lives[c] = temp
+        df_deaths[c] = temp
+        df_types[c] = temp
+
+        # df_lives[c] = [d[c] for d in data]
+        # df_deaths[c] = [d[c] for d in data]
+        # df_types[c] = [d[c] for d in data]
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
@@ -831,7 +865,7 @@ def individual_children_numbers(children_proj_):
     df_deaths = pd.DataFrame()
     df_types = pd.DataFrame()
 
-    #add the id column
+    #add the id and rang columns which are key
     df_lives['id'] = ids
     df_lives['rang'] = rangs
     df_deaths['id'] = ids
@@ -842,9 +876,20 @@ def individual_children_numbers(children_proj_):
     # data columns
     cols_data = data[0].keys()
     for c in cols_data:
-        df_lives[c] = [d[c] for d in data]
-        df_deaths[c] = [d[c] for d in data]
-        df_types[c] = [d[c] for d in data]
+        temp = []
+        for d in data:
+            if c in d:
+                temp.append(d[c])
+            else:
+                temp.append('')
+        
+        df_lives[c] = temp
+        df_deaths[c] = temp
+        df_types[c] = temp
+
+        # df_lives[c] = [d[c] if c in d else '' for d in data]
+        # df_deaths[c] = [d[c] if c in d else '' for d in data]
+        # df_types[c] = [d[c] if c in d else ''for d in data]
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[child][year] for child in range(n_children)]
