@@ -142,7 +142,7 @@ def verifyCols(data_, cols):
     return temp
 
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
-                    law_resignation_ = None, law_marriage_ = None, law_birth_ = None, birth_type = ['active', 'retired'],
+                    law_resignation_ = None, law_marriage_ = None, age_diff = 5, law_birth_ = None, birth_type = ['active', 'retired'],
                     law_replacement_ =  None):
     
     """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
@@ -182,6 +182,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     law_marriage_ : function or tuple
                     a function returning a number between 0 and 1 (probability that the employee will marry next year), or a 
                     tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    age_diff (int) : Age difference between male and female for new marriages
     law_birth_ : function or tuple
                 a function returning a number between 0 and 1 (probability that the employee (or spouse)  
                 will  give birth next year), or a  tuple : (function, liste of it's parameters 
@@ -267,11 +268,6 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         print('Unfound columns in spouses : ', unfound_cols)
         return None
     
-    # dics where to store survivals : ex : {id:[list of lives, one for each year]}
-    # employees_proj = {}
-    # spouses_proj = {}
-    # children_proj = {}
-    
     # initialization of projected employees, spouses and children
     employees_proj = init_employees_proj(employees, MAX_YEARS)
     spouses_proj = init_spouses_proj(spouses, MAX_YEARS)
@@ -315,7 +311,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         if probMar == 0:
             return
         
-        # sex
+        # sex of the spouse
         if employees_proj[employee_id]["data"]["sex"] == 'male':
             sex_temp = 'female'
         else:
@@ -324,11 +320,11 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         #live employee (employee will marry only if still alive)
         live_emp = employees_proj[employee_id]["lives"][year_]
         
-        #age. It supposed that difference between ages is -/+ 5 year depending on sex
+        #age. It supposed that difference between ages is -/+ age_diff year depending on sex
         if sex_temp == 'female':
-            age_temp = employees_proj[employee_id]["data"]["age"] - 5 
+            age_temp = employees_proj[employee_id]["data"]["age"] - age_diff
         else:
-            age_temp = employees_proj[employee_id]["data"]["age"] + 5
+            age_temp = employees_proj[employee_id]["data"]["age"] + age_diff
         
         #type
         type_temp = employees_proj[employee_id]["type"][i]
@@ -340,13 +336,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
         else:
-            tt = spouses_proj[(employee_id, rang)]['lives'][year_]
-            # if  tt > 0:
-                # print('avant : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
-            
-            # if tt > 0:
-                # print('apres : ', spouses_proj[(employee_id, rang)]['lives'][year_], year_)
     
     
     def add_new_child(employee_id, rang_, year_, rang_child):
