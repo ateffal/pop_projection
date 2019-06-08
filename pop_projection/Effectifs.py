@@ -5,7 +5,6 @@ Created on Mon May  7 14:08:56 2018
 @author: a.teffal
 
 """
-#%%
 
 import pandas as pd
 # from pop_projection import Actuariat as act
@@ -13,6 +12,7 @@ from . import Actuariat as act
 import inspect
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 def retire(age):
     if age >= 55:
@@ -20,7 +20,6 @@ def retire(age):
     else:
         return False
 
-#%%
 def turnover(age) :
     """
     Return the probability of quitting during the following year at a given age
@@ -34,7 +33,7 @@ def turnover(age) :
         else:
             return 0
 
-#%%
+
 def probaMariage(age, typeAgent):
     """
     Return the probability of getting married  during the following year at a given age
@@ -63,37 +62,70 @@ def probaNaissance(age):
     
     return temp[age -23]
     
-#%%
 
-def is_alive(Age, Table):
-    if Age > 120:
-        return 0
+def init_employees_proj(employees, MAX_YEARS):
 
-    if Table[Age]!=0:
-        p = Table[Age+1]/Table[Age]
-    else:
-        p = 0
+    #projected employees are stored in a dic with keys:
+    # - data : all columns of dataframe employees passed to simulerEffectif except column id
+    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
+    # - entrance (int) : year in which employee was added to population
+    # - lives (list of numbers) : the element i represents the probability of living until year i
+    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
+    # - res (list of numbers) : the element i represents the probability of resignation between year i and year i+1
+    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
+    employees_proj = {}
+    n_e = len(employees)
+    
+    for i in range(n_e):
+        if employees["type"][i] == "active":
+            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
+                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['active'] + ['']*(MAX_YEARS-1)}  
+        else:
+            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
+                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['retired']*MAX_YEARS}
+        employees_proj[employees["id"][i]]['data']['age0'] = employees["age"][i]
 
-    if random.random() <= p:
-        return 1
-    else:
-        return 0
+    return employees_proj
 
-#%%
-def is_present(Age):
-    if random.random() < turnover(Age):
-        return 0
-    else:
-        return 1
+def init_spouses_proj(spouses, MAX_YEARS):
+    
+    #projected spouses are stored in a dic with keys:
+    # - data : all columns of dataframe employees passed to simulerEffectif except column id
+    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
+    # - entrance (int) : year in which employee was added to population
+    # - lives (list of numbers) : the element i represents the probability of living until year i
+    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
+    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
+    spouses_proj = {}
+    n_s = len(spouses)
 
-#%%
-def willMarry(Age, typeAgent):
-    if random.random() < probaMariage(Age, typeAgent):
-        return 1
-    else:
-        return 0
+    for i in range(n_s):
+        spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
+        spouses_proj[(spouses["id"][i], spouses["rang"][i])]['data']['age0'] = spouses["age"][i]
 
-#%%
+    return spouses_proj
+
+def init_children_proj(children, MAX_YEARS):
+    
+    #projected spouses are stored in a dic with keys:
+    # - data : all columns of dataframe employees passed to simulerEffectif except column id
+    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
+    # - entrance (int) : year in which employee was added to population
+    # - lives (list of numbers) : the element i represents the probability of living until year i
+    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
+    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
+    children_proj = {}
+    n_c = len(children)
+
+    for i in range(n_c):
+        children_proj[(children["id"][i], children["rang"][i])] = {'data':dict(zip(children.columns[2:],list(children.iloc[i])[2:])), 'exist':1, 
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[children["type"][i]] + ['']*(MAX_YEARS-1)}
+        children_proj[(children["id"][i], children["rang"][i])]['data']['age0'] = children["age"][i]
+
+    return children_proj
+    
+
 
 def verifyCols(data_, cols):
     '''
@@ -154,6 +186,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 a function returning a number between 0 and 1 (probability that the employee (or spouse)  
                 will  give birth next year), or a  tuple : (function, liste of it's parameters 
                 that have same name in the employees or spouses data frame)
+    birth_type : list. A sub-list of ['active', 'retired']. Types to which apply law of birth.
     law_replacement_ : function
                     function having parameters :
                     - departures_ : a dic storing number of departures by group of the year year_
@@ -233,38 +266,17 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     if len(unfound_cols) > 0:
         print('Unfound columns in spouses : ', unfound_cols)
         return None
-
-    # Numbers of each category of population
-    n_e = len(employees) 
-    n_s = len(spouses)
-    n_c = len(children)
     
     # dics where to store survivals : ex : {id:[list of lives, one for each year]}
-    employees_proj = {}
-    spouses_proj = {}
-    children_proj = {}
+    # employees_proj = {}
+    # spouses_proj = {}
+    # children_proj = {}
     
-    # initialisation of dics
-    #dic of employees. For employees, keys are id (first column)
-    for i in range(n_e):
-        if employees["type"][i] == "active":
-            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
-                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['active'] + ['']*(MAX_YEARS-1)}  
-        else:
-            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
-                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['retired']*MAX_YEARS}  
-            
-    #dic of spouses. For spouses, keys are tuples (id, rang) : (first column, second column)
-    for i in range(n_s):
-        spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
-        
-    
-    #dic of children. For children, keys are tuples (id, rang) : (first column, second column)
-    for i in range(n_c):
-        children_proj[(children["id"][i], children["rang"][i])] = {'data':dict(zip(children.columns[2:],list(children.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[children["type"][i]] + ['']*(MAX_YEARS-1)}
-        
+    # initialization of projected employees, spouses and children
+    employees_proj = init_employees_proj(employees, MAX_YEARS)
+    spouses_proj = init_spouses_proj(spouses, MAX_YEARS)
+    children_proj = init_children_proj(children, MAX_YEARS)
+
     # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
     new_retirees = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
     
@@ -582,9 +594,9 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             for ne in new_emp:
                 add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
         
-        #add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, total_departures,1)
+        # add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, total_departures,1)
         
-    return  employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
+    return employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
     
     
 def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
@@ -1004,7 +1016,6 @@ def plot_pyramide_spouses(numbers_, year_, MAX_YEARS, color_males = (149/255,125
     plt.show()
     
 
-    
 
 def new_employees(employees_proj_, MAX_YEARS):
     """ 
