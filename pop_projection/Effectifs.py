@@ -9,6 +9,7 @@ Created on Mon May  7 14:08:56 2018
 import pandas as pd
 # from pop_projection import Actuariat as act
 from . import Actuariat as act
+from . import tools
 import inspect
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,6 +34,13 @@ def turnover(age) :
         else:
             return 0
 
+def turnover0(age) :
+    """
+    Return the probability of quitting during the following year at a given age
+
+    """
+    return 0
+
 
 def probaMariage(age, typeAgent):
     """
@@ -46,7 +54,26 @@ def probaMariage(age, typeAgent):
             return 0
     else:
         return 0
+
+
+def probaMariage0(age, typeAgent):
+    """
+    Return the probability of getting married  during the following year at a given age
+
+    """
+    return 0
     
+
+def probaNaissance0(age):
+
+    """
+    Return the probability of having a new born  during the following year at a given age
+
+    """
+
+    return 0
+
+
 def probaNaissance(age):
     """
     Return the probability of having a new born  during the following year at a given age
@@ -63,70 +90,6 @@ def probaNaissance(age):
     return temp[age -23]
     
 
-def init_employees_proj(employees, MAX_YEARS):
-
-    #projected employees are stored in a dic with keys:
-    # - data : all columns of dataframe employees passed to simulerEffectif except column id
-    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
-    # - entrance (int) : year in which employee was added to population
-    # - lives (list of numbers) : the element i represents the probability of living until year i
-    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
-    # - res (list of numbers) : the element i represents the probability of resignation between year i and year i+1
-    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
-    employees_proj = {}
-    n_e = len(employees)
-    
-    for i in range(n_e):
-        if employees["type"][i] == "active":
-            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
-                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['active'] + ['']*(MAX_YEARS-1)}  
-        else:
-            employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
-                'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':['retired']*MAX_YEARS}
-        employees_proj[employees["id"][i]]['data']['age0'] = employees["age"][i]
-
-    return employees_proj
-
-def init_spouses_proj(spouses, MAX_YEARS):
-    
-    #projected spouses are stored in a dic with keys:
-    # - data : all columns of dataframe employees passed to simulerEffectif except column id
-    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
-    # - entrance (int) : year in which employee was added to population
-    # - lives (list of numbers) : the element i represents the probability of living until year i
-    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
-    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
-    spouses_proj = {}
-    n_s = len(spouses)
-
-    for i in range(n_s):
-        spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
-        spouses_proj[(spouses["id"][i], spouses["rang"][i])]['data']['age0'] = spouses["age"][i]
-
-    return spouses_proj
-
-def init_children_proj(children, MAX_YEARS):
-    
-    #projected spouses are stored in a dic with keys:
-    # - data : all columns of dataframe employees passed to simulerEffectif except column id
-    # - exist (0 or 1) : first initialized to 1, becomes 0 when employee deleted from population
-    # - entrance (int) : year in which employee was added to population
-    # - lives (list of numbers) : the element i represents the probability of living until year i
-    # - deaths (list of numbers) : the element i represents the probability of dying between year i and year i+1
-    # - type (list of string) : if employee is still active at year i, then element i is 'active' otherwise 'retired'
-    children_proj = {}
-    n_c = len(children)
-
-    for i in range(n_c):
-        children_proj[(children["id"][i], children["rang"][i])] = {'data':dict(zip(children.columns[2:],list(children.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[children["type"][i]] + ['']*(MAX_YEARS-1)}
-        children_proj[(children["id"][i], children["rang"][i])]['data']['age0'] = children["age"][i]
-
-    return children_proj
-    
-
-
 def verifyCols(data_, cols):
     '''
     verify that list of cols exist in data_
@@ -142,8 +105,8 @@ def verifyCols(data_, cols):
     return temp
 
 def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
-                    law_resignation_ = None, law_marriage_ = None, age_diff = 5, law_birth_ = None, birth_type = ['active', 'retired'],
-                    law_replacement_ =  None):
+                    law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
+                    law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
     
     """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
         mortality, retirement, resignation, marriage, birth and replacement.
@@ -183,11 +146,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                     a function returning a number between 0 and 1 (probability that the employee will marry next year), or a 
                     tuple : (function, liste of it's parameters that have same name in the employees data frame)
     age_diff (int) : Age difference between male and female for new marriages
+    marriage_periode : list. A sub-list of ['active', 'retired']. Types to which apply law of marriage.
     law_birth_ : function or tuple
                 a function returning a number between 0 and 1 (probability that the employee (or spouse)  
                 will  give birth next year), or a  tuple : (function, liste of it's parameters 
                 that have same name in the employees or spouses data frame)
-    birth_type : list. A sub-list of ['active', 'retired']. Types to which apply law of birth.
+    birth_periode : list. A sub-list of ['active', 'retired']. Types to which apply law of birth.
     law_replacement_ : function
                     function having parameters :
                     - departures_ : a dic storing number of departures by group of the year year_
@@ -228,7 +192,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
     #setting law of resignation
     if law_resignation_ == None:
-        law_resignation = turnover
+        law_resignation = turnover0
         cols_res = ['age']
     else:
         law_resignation = law_resignation_[0] if type(law_resignation_) is tuple else law_resignation_
@@ -242,7 +206,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
     #setting law of marriage
     if law_marriage_ == None:
-        law_marriage = probaMariage
+        law_marriage = probaMariage0
         cols_mar = ['age', 'type']
     else:
         law_marriage = law_marriage_[0] if type(law_marriage_) is tuple else law_marriage_
@@ -256,7 +220,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
 
     #setting law of birth
     if law_birth_ == None:
-        law_birth = probaNaissance
+        law_birth = probaNaissance0
         cols_birth = ['age']
     else:
         law_birth = law_birth_[0] if type(law_birth_) is tuple else law_birth_
@@ -269,9 +233,9 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         return None
     
     # initialization of projected employees, spouses and children
-    employees_proj = init_employees_proj(employees, MAX_YEARS)
-    spouses_proj = init_spouses_proj(spouses, MAX_YEARS)
-    children_proj = init_children_proj(children, MAX_YEARS)
+    employees_proj = tools.init_employees_proj(employees, MAX_YEARS)
+    spouses_proj = tools.init_spouses_proj(spouses, MAX_YEARS)
+    children_proj = tools.init_children_proj(children, MAX_YEARS)
 
     # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
     new_retirees = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
@@ -386,14 +350,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         n_death = 0.0
         n_resignation = 0.0
         n_marriage = 0.0
-        total_departures = 0.0
         departures = {} # a dic storing the number of departures for a group each year
         
         #projection of employees
         for id_e, employee in employees_proj.items():
                
-            #update age of employee
-            #employee["data"]['age'] = employee["data"]['age'] + 1
+            #age of employee
             age = employee["data"]['age']
             
             #probability of surviving
@@ -413,8 +375,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
                 args_ = tuple([employee["data"][z] for z in cols_res])
                 
-                resignation = law_resignation(*args_)#turnover(age)
-                #resignation = turnover(age)
+                resignation = law_resignation(*args_) #turnover(age)
             else:
                 resignation = 0
                 
@@ -435,8 +396,8 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
 
                 if law_retirement(*args_):
                     #update number of retired
-                    n_retired += 1* employee['lives'][i-1]
-                    new_retirees[i] = new_retirees[i] + [id_e]
+                    n_retired += employee['lives'][i-1] * survie * (1-resignation) # was 1* employee['lives'][i-1]
+                    new_retirees[i] = new_retirees[i] + [id_e]  # add id of the employee to the list
                     
                     # departures by group
                     if employee['data']['group'] in departures:
@@ -451,7 +412,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
                     employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
                     
                     #update deaths
-                    employee["deaths"][i] = employee["lives"][i-1] * death
+                    employee["deaths"][i] = employee["lives"][i-1] * death * (1-resignation) # was employee["lives"][i-1] * death
                     
                     #update number of new retirees
                     n_new_retirees[i] =  n_retired
@@ -467,16 +428,17 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
             
             #update deaths
-            employee["deaths"][i] = employee["lives"][i-1] * death
+            employee["deaths"][i] = employee["lives"][i-1] * death * (1-resignation) # was employee["lives"][i-1] * death
             
             #update res
             employee["res"][i] = resignation* employee['lives'][i-1]
             
             #handling marriage
-            if employee["data"]["familyStatus"] == "not married" : 
-                args_ = tuple([employee["data"][z] for z in cols_mar])
-                add_new_spouse(id_e, i, law_marriage(*args_))
-                n_marriage += 1
+            if employee["type"][i] in marriage_periode:
+                if employee["data"]["familyStatus"] == "not married" : 
+                    args_ = tuple([employee["data"][z] for z in cols_mar])
+                    add_new_spouse(id_e, i, law_marriage(*args_))
+                    n_marriage += 1
                 
             #update age of employee
             employee["data"]['age'] = employee["data"]['age'] + 1
@@ -521,7 +483,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
             #     add_new_child(id_s[0],id_s[1], i)
 
-            if spouse["type"][i] in birth_type:
+            if spouse["type"][i] in birth_periode:
                 add_new_child(id_s[0],id_s[1], i, 500 + i)
 
             #update age of spouse
@@ -568,23 +530,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             child["data"]['age'] = child["data"]['age'] + 1 
             
         
-        
-        #total departures
-        total_departures = n_retired + n_resignation + n_death
-        
-        
-        # if law_replacement = None, replacement of departures 50% males, 50% females age 23 in each group
-        if law_replacement_ == None:
-#             for g in departures:
-#                 add_new_employee('new_employee_year_males_' + str(i) + '_group_' + str(g) + '_male', i, 'male', 23, 0.5 * departures[g],g)
-#                 add_new_employee('new_employee_year_males_' + str(i)  + '_group_'+ str(g) + '_female', i, 'female', 23, 0.5 * departures[g],g)
-            x = 0
-        else:
+        # replacement of departures
+        if not (law_replacement_ == None):
             new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : key, number and data (list of values corresponding to employees)
             for ne in new_emp:
                 add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
         
-        # add_new_employee('new_employee_year_males_' + str(i), i, 'male', 23, total_departures,1)
         
     return employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
     
@@ -932,10 +883,10 @@ def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     totalLeaving = [sum(x) for x in zip(effectif_deces_actifs, effectif_demissions, n_new_retirees_ )]
     
     Data = {'Year':list(range(MAX_YEARS)),'effectif_deces_actifs' : effectif_deces_actifs, 'effectif_demissions' : effectif_demissions, 
-            'new_retirees' : n_new_retirees_, 'Total Living' : totalLeaving}
+            'new_retirees' : n_new_retirees_, 'Total Leaving' : totalLeaving}
 
     Leaving = pd.DataFrame(data=Data, 
-            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 'Total Living'])
+            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 'Total Leaving'])
     
     return Leaving
 
