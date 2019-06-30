@@ -1,3 +1,10 @@
+"""
+Created on 2019
+
+@author: a.teffal
+
+"""
+
 def init_employees_proj(employees, MAX_YEARS):
     
     #projected employees are stored in a dic with keys:

@@ -1,3 +1,10 @@
+"""
+Created on 2019
+
+@author: a.teffal
+
+"""
+
 def law_replacement1(departures_, year_):
     
     '''
@@ -62,5 +69,19 @@ def law_mar1(age, sex, type):
                 return 0.15
             else :
                 return 0
+        else:
+            return 0
+
+
+def turnover(age) :
+    """
+    Return the probability of quitting during the following year at a given age
+
+    """
+    if age<30:
+        return 0.02
+    else:
+        if age <45:
+            return 0.01
         else:
             return 0

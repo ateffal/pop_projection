@@ -1,3 +1,4 @@
+''' Module Effectifs '''
 
 """
 Created on Mon May  7 14:08:56 2018
@@ -7,7 +8,6 @@ Created on Mon May  7 14:08:56 2018
 """
 
 import pandas as pd
-# from pop_projection import Actuariat as act
 from . import Actuariat as act
 from . import tools
 import inspect
@@ -16,6 +16,10 @@ import numpy as np
 import random
 
 def retire(age):
+    """
+    Retirement at 55 years
+
+    """
     if age >= 55:
         return True
     else:
