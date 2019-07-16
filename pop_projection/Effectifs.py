@@ -259,12 +259,13 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
 
         """
-        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_+1), 'lives':[0] * MAX_YEARS, 
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
         'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS}
         
-        # updating lives and type
+        # updating age0, lives and type
         employees_proj[id_]['lives'][year_] = ponderation
         employees_proj[id_]['type'][year_] = 'active'
+        employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
         
     def add_new_spouse(employee_id, year_, probMar=1):
         """Adds a new spouse in the spouses_proj dic.
@@ -367,6 +368,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             
             #probability of dying
             death = act.sfs_nQx(age,1, mortalityTable)
+
             if employee["type"][i-1] == "active":
                 n_death += death * employee['lives'][i-1]
                 # departure by group
@@ -538,7 +540,8 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
         if not (law_replacement_ == None):
             new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : key, number and data (list of values corresponding to employees)
             for ne in new_emp:
-                add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
+                #add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
+                add_new_employee(str(ne['key']), i, ne['number'],ne['data']) 
         
         
     return employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
@@ -558,6 +561,9 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
                        Actives, Retirees, Wives, Widows, Children 
     """
     
+    if len(list(employees_proj_.values())[0]['lives']) < MAX_YEARS:
+        MAX_YEARS = len(list(employees_proj_.values())[0]['lives'])
+
     
     # number of actives per year
     effectif_actifs = [0] * MAX_YEARS
@@ -598,6 +604,9 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
             
             effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
         
+        if len(spouses_proj_) == 0:
+            continue
+
         for a in spouses_proj_.values():
             if a['type'][i] == 'active':
                 effectif_conjoints_actifs[i] = effectif_conjoints_actifs[i] + a['lives'][i]
@@ -609,7 +618,10 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
                 
             if a['type'][i] == 'widow':
                 effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
-                
+
+        if len(children_proj_) == 0:
+            continue
+
         for a in children_proj_.values():
             if a['type'][i] == 'active':
                 effectif_enfants_actifs[i] = effectif_enfants_actifs[i] + a['lives'][i]
@@ -867,18 +879,31 @@ def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
             DataFrame: A DataFrame containing global numbers leaving population of employees by year : 
                        deaths, resignation, new retirees 
     """
+
+
+    if len(list(employees_proj_.values())[0]['lives']) < MAX_YEARS:
+        MAX_YEARS = len(list(employees_proj_.values())[0]['lives'])
     
     # number of quitters (resignations) per year
     effectif_demissions = [0] * MAX_YEARS
     
     # number of dying actives per year
     effectif_deces_actifs = [0] * MAX_YEARS
+
+    # number of dying retiress per year
+    effectif_deces_retirees = [0] * MAX_YEARS
+    effectif_deces_nouveaux_retirees = [0] * MAX_YEARS
     
     for i in range(MAX_YEARS):
         for a in employees_proj_.values():
             if a['type'][i] == 'active':
                 effectif_deces_actifs[i] = effectif_deces_actifs[i] + a['deaths'][i]
-            
+            if a['type'][i] == 'retired':
+                effectif_deces_retirees[i] = effectif_deces_retirees[i] + a['deaths'][i]
+                if i > 0 :
+                    if a['type'][i-1] == 'active':
+                        effectif_deces_nouveaux_retirees[i] = effectif_deces_nouveaux_retirees[i] + a['deaths'][i]
+
             effectif_demissions[i] = effectif_demissions[i] + a['res'][i]
     
     
@@ -887,10 +912,12 @@ def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     totalLeaving = [sum(x) for x in zip(effectif_deces_actifs, effectif_demissions, n_new_retirees_ )]
     
     Data = {'Year':list(range(MAX_YEARS)),'effectif_deces_actifs' : effectif_deces_actifs, 'effectif_demissions' : effectif_demissions, 
-            'new_retirees' : n_new_retirees_, 'Total Leaving' : totalLeaving}
+            'new_retirees' : n_new_retirees_, 'Total Leaving' : totalLeaving, 'effectif_deces_retraites':effectif_deces_retirees, 
+            'effectif_deces_nouveaux_retraites':effectif_deces_nouveaux_retirees}
 
     Leaving = pd.DataFrame(data=Data, 
-            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 'Total Leaving'])
+            columns=['Year', 'effectif_deces_actifs', 'effectif_demissions', 'new_retirees' , 
+            'Total Leaving', 'effectif_deces_retraites', 'effectif_deces_nouveaux_retraites'])
     
     return Leaving
 
@@ -973,6 +1000,10 @@ def new_employees(employees_proj_, MAX_YEARS):
             DataFrame: A DataFrame containing new employees entering the population
     """
 
+
+    if len(list(employees_proj_.values())[0]['lives']) < MAX_YEARS:
+        MAX_YEARS = len(list(employees_proj_.values())[0]['lives'])
+
     ids = []
     data = []
     entrances = []
@@ -999,3 +1030,4 @@ def new_employees(employees_proj_, MAX_YEARS):
         df_new_employees[c] = [d[c] for d in data]
 
     return df_new_employees
+
