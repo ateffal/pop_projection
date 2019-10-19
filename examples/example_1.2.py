@@ -74,7 +74,7 @@ print(children.head(10))
 MAX_ANNEES = 50
 
 # Projection
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = None)
+numbers_ = eff.projectNumbers(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = None)
 
 # global numbers
 global_numb = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], 50)

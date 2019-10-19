@@ -10,12 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Path for input data
-path ="./pop_projection/data/"
+path = "./pop_projection/data/"
 
 # Loading data
-employees = pd.read_csv(path + "employees.csv",sep=";", decimal = ",")
-spouses = pd.read_csv(path + "spouses.csv",sep=";", decimal = ",")
-children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
+employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")
+spouses = pd.read_csv(path + "spouses.csv", sep=";", decimal=",")
+children = pd.read_csv(path + "children.csv", sep=";", decimal=",")
 
 # Diplay some data
 print('Employees :')
@@ -30,7 +30,8 @@ print(children.head(10))
 MAX_ANNEES = 100
 
 # Projection
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = None)
+numbers_ = eff.projectNumbers(
+    employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_=None)
 
 # global numbers
 global_numb = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], 50)
@@ -42,6 +43,7 @@ print(global_numb)
 plt.xlabel('years')
 plt.ylabel('numbers')
 plt.plot(global_numb['Year'], global_numb['effectif_actifs'], label='Actives')
-plt.plot(global_numb['Year'], global_numb['effectif_retraites'], label='Retirees')
+plt.plot(global_numb['Year'],
+         global_numb['effectif_retraites'], label='Retirees')
 plt.legend(loc='upper right')
 plt.show()

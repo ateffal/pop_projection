@@ -146,7 +146,7 @@ def law_ret1(age, Date_Engagement, DateNaissance, year_proj):
 
 
 # Path for input data
-path = "../data_2018/"
+path = "./pop_projection/data/"
 
 # Loading data
 employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")
@@ -166,7 +166,7 @@ print('Chargement données : ', time.asctime( time.localtime(time.time())))
 MAX_ANNEES = 60
 
 # Projection
-numbers_ = eff.simulerEffectif( employees, spouses, children, 'TV 88-90', MAX_ANNEES, 
+numbers_ = eff.projectNumbers( employees, spouses, children, 'TV 88-90', MAX_ANNEES, 
                                 law_replacement_=law_replacement1, law_retirement_= law_ret1)
 
 print('Simulation effectifs : ', time.asctime( time.localtime(time.time())))
