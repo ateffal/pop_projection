@@ -18,7 +18,7 @@ The laws governing suchs movements are :
 - law of replacement
 
 
-Law of quitting, law of retirement, law of marriage and law of birth are functions that are passed to the main function (simulerEffectif) as tuples : (law, [list of parameters]). The list of parameters must exist in the list of columns of the corresponding input data :
+Law of quitting, law of retirement, law of marriage and law of birth are functions that are passed to the main function (projectNumbers) as tuples : (law, [list of parameters]). The list of parameters must exist in the list of columns of the corresponding input data :
 - law of quitting --> parameters names are in the list of columns of employees.
 - law of retirement --> parameters names are in the list of columns of employees.
 - law of marriage --> parameters names are in the list of columns of employees.
@@ -128,7 +128,7 @@ spouses = pd.read_csv(path + "spouses.csv",sep=";", decimal = ",")
 children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
 
 # Projection of population
-numbers_ = eff.simulerEffectif(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), 
+numbers_ = eff.projectNumbers(employees, spouses, children, 'TV 88-90', MAX_ANNEES, (law_ret1, ['age', 'Year_employment']), 
                     (law_resignation_1, ['age', 'sex']), (law_mar1, ['age', 'sex','type']), law_replacement_ = None)
 
 # Global numbers
