@@ -108,7 +108,7 @@ def verifyCols(data_, cols):
     
     return temp
 
-def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
+def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
                     law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
                     law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
     
@@ -304,6 +304,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+            spouses_proj[(employee_id, rang)]['data']['age0'] = age_temp
         else:
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
     
@@ -331,10 +332,11 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             return
         
         #live employee (or his spouse) (employee or spouse will give birth only if still alive)
-        if employees_proj[employee_id]["data"]["sex"] == 'male':
-            live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
-        else:
-            live_emp = employees_proj[employee_id]["lives"][year_]
+        # if employees_proj[employee_id]["data"]["sex"] == 'male':
+        #     live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
+        # else:
+        #     live_emp = employees_proj[employee_id]["lives"][year_]
+        live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
         
         #type
         type_temp = employees_proj[employee_id]["type"][i]
@@ -344,6 +346,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+            children_proj[(employee_id, rang_child)]['data']['age0'] = 0
         # else:
         #    children_proj[(employee_id, 1)]['lives'][year_] = children_proj[(employee_id, 1)]['lives'][year_] + live_emp * probBirth
         
@@ -443,9 +446,12 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             if employee["type"][i] in marriage_periode:
                 if employee["data"]["familyStatus"] == "not married" : 
                     args_ = tuple([employee["data"][z] for z in cols_mar])
+                    prob_mar = law_marriage(*args_)  # if equals 1 set familyStatus of employee to married
                     add_new_spouse(id_e, i, law_marriage(*args_))
                     n_marriage += 1
-                
+                    if prob_mar==1:
+                        employee["data"]["familyStatus"] = "married"
+
             #update age of employee
             employee["data"]['age'] = employee["data"]['age'] + 1
             
@@ -490,7 +496,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
             #     add_new_child(id_s[0],id_s[1], i)
 
             if spouse["type"][i] in birth_periode:
-                add_new_child(id_s[0],id_s[1], i, 500 + i)
+                add_new_child(id_s[0],id_s[1], i, 100*id_s[1] + i)
 
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
@@ -549,7 +555,7 @@ def simulerEffectif(employees, spouses, children, mortalityTable = 'TV 88-90', M
     
 def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     """ 
-        Assumes parameters are of the form of those returned by simulerEffectif
+        Assumes parameters are of the form of those returned by projeterEffectif
   
         Parameters: 
             employees_proj_ (dic): a dic containing projected employees
@@ -658,12 +664,13 @@ def individual_employees_numbers(employees_proj_):
     
     Parameters
     ----------
-    employees_proj_ : dic of the form of that returned by simulerEffectif
+    employees_proj_ : dic of the form of that returned by projeterEffectif
         
     
     """
     ids = []
     data = []
+    entrances = []
     lives = []
     deaths = []
     res = []
@@ -674,6 +681,7 @@ def individual_employees_numbers(employees_proj_):
     for emp in employees_proj_:
         ids.append(emp)
         data.append(employees_proj_[emp]['data'])
+        entrances.append(employees_proj_[emp]['entrance'])
         lives.append(employees_proj_[emp]['lives'])
         deaths.append(employees_proj_[emp]['deaths'])
         res.append(employees_proj_[emp]['res'])
@@ -714,6 +722,10 @@ def individual_employees_numbers(employees_proj_):
         # df_deaths[c] = [d[c] for d in data]
         # df_res[c] = [d[c] for d in data]
         # df_types[c] = [d[c] for d in data]
+    df_lives['entrance'] = entrances
+    df_deaths['entrance'] = entrances
+    df_res['entrance'] = entrances
+    df_types['entrance'] = entrances
 
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[emp][year] for emp in range(n_emp)]
@@ -731,13 +743,14 @@ def individual_spouses_numbers(spouses_proj_):
     
     Parameters
     ----------
-    spouses_proj_ : dic of the form of that returned by simulerEffectif
+    spouses_proj_ : dic of the form of that returned by projeterEffectif
         
     
     """
     ids = []
     rangs = []
     data = []
+    entrances = []
     lives = []
     deaths = []
     types = []
@@ -747,6 +760,7 @@ def individual_spouses_numbers(spouses_proj_):
         ids.append(spouse[0])
         rangs.append(spouse[1])
         data.append(spouses_proj_[spouse]['data'])
+        entrances.append(spouses_proj_[spouse]['entrance'])
         lives.append(spouses_proj_[spouse]['lives'])
         deaths.append(spouses_proj_[spouse]['deaths'])
         types.append(spouses_proj_[spouse]['type'])
@@ -788,6 +802,10 @@ def individual_spouses_numbers(spouses_proj_):
         # df_deaths[c] = [d[c] for d in data]
         # df_types[c] = [d[c] for d in data]
     
+    df_lives['entrance'] = entrances
+    df_deaths['entrance'] = entrances
+    df_types['entrance'] = entrances
+    
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
         df_deaths['year_' + str(year)] = [deaths[spouse][year] for spouse in range(n_spouses)]
@@ -803,13 +821,14 @@ def individual_children_numbers(children_proj_):
     
     Parameters
     ----------
-    children_proj_ : dic of the form of that returned by simulerEffectif
+    children_proj_ : dic of the form of that returned by projeterEffectif
         
     
     """
     ids = []
     rangs = []
     data = []
+    entrances = []
     lives = []
     deaths = []
     types = []
@@ -819,6 +838,7 @@ def individual_children_numbers(children_proj_):
         ids.append(child[0])
         rangs.append(child[1])
         data.append(children_proj_[child]['data'])
+        entrances.append(children_proj_[child]['entrance'])
         lives.append(children_proj_[child]['lives'])
         deaths.append(children_proj_[child]['deaths'])
         types.append(children_proj_[child]['type'])
@@ -860,6 +880,10 @@ def individual_children_numbers(children_proj_):
         # df_deaths[c] = [d[c] if c in d else '' for d in data]
         # df_types[c] = [d[c] if c in d else ''for d in data]
     
+    df_lives['entrance'] = entrances
+    df_deaths['entrance'] = entrances
+    df_types['entrance'] = entrances
+    
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[child][year] for child in range(n_children)]
         df_deaths['year_' + str(year)] = [deaths[child][year] for child in range(n_children)]
@@ -870,7 +894,7 @@ def individual_children_numbers(children_proj_):
 
 def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
     """ 
-        Assumes parameter employees_proj_ is of the form of that returned by simulerEffectif
+        Assumes parameter employees_proj_ is of the form of that returned by projeterEffectif
   
         Parameters: 
             employees_proj_ (dic): a dic containing projected employees
@@ -991,7 +1015,7 @@ def plot_pyramide_spouses(numbers_, year_, MAX_YEARS, color_males = (149/255,125
 
 def new_employees(employees_proj_, MAX_YEARS):
     """ 
-        Assumes parameter employees_proj_ is of the form of that returned by simulerEffectif
+        Assumes parameter employees_proj_ is of the form of that returned by projeterEffectif
   
         Parameters: 
             employees_proj_ (dic): a dic containing projected employees
@@ -1031,3 +1055,448 @@ def new_employees(employees_proj_, MAX_YEARS):
 
     return df_new_employees
 
+
+
+def simulateNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
+                    law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
+                    law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
+    
+    """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
+        mortality, retirement, resignation, marriage, birth and replacement.
+
+    assumes employees, spouses and children are pandas dataframes with at least 6 columns :
+        - id   : an unique identifier of the employee
+        - type : active or retired for employees. active, or retired or widow or widower for spouses and children.
+                 for spouses and children, type is the type of the employee that they are attached to 
+                 if it's still alive, or widower otherwise.
+        - sex  : male or female
+        - familyStatus : married, or not married
+        - age
+        - group (optional) : a sub-population. ex : group of employees recruted before 2002, group of directors,...
+
+    Parameters
+    ----------
+    employees : pandas dataframe
+                dataframe of employees having at least columns: id, type, sexe, familyStatus, age and group (optional).
+    spouses   : pandas dataframe
+                dataframe of spouses having at least columns : id, type, sexe, familyStatus and age.
+    children   : pandas dataframe
+                dataframe of children having at least columns : id, type, sexe, familyStatus and age.
+    mortalityTable : string
+                name of the mortality table. 
+                View existing mortality tables with Actuariat.mortality_tables.
+                Add a mortality table with Actuariat.add_mortality_table
+
+    MAX_YEARS  : int
+                number of years of projection
+    law_retirement_ : function or tuple
+                    a function returning a boolean (the employee will retire yes or no), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    law_resignation_ : function or tuple
+                    a function returning a number between 0 and 1 (probability that the employee will resign next year), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    law_marriage_ : function or tuple
+                    a function returning a number between 0 and 1 (probability that the employee will marry next year), or a 
+                    tuple : (function, liste of it's parameters that have same name in the employees data frame)
+    age_diff (int) : Age difference between male and female for new marriages
+    marriage_periode : list. A sub-list of ['active', 'retired']. Types to which apply law of marriage.
+    law_birth_ : function or tuple
+                a function returning a number between 0 and 1 (probability that the employee (or spouse)  
+                will  give birth next year), or a  tuple : (function, liste of it's parameters 
+                that have same name in the employees or spouses data frame)
+    birth_periode : list. A sub-list of ['active', 'retired']. Types to which apply law of birth.
+    law_replacement_ : function
+                    function having parameters :
+                    - departures_ : a dic storing number of departures by group of the year year_
+                    - year_ : year of projection
+                    this function returns a list of employees to add to population. Each
+                    employee in this list is a dic with keys : 'key' (to uniquely define the employee), 
+                    'number' and 'data' (list of values that corresponds to columns in employee except id)
+    
+    Returns
+    -------
+    tuple
+        a tuple of projected population as dics: 
+        - projected employees, a dic with key id and value is a dic with keys: data, exist, entrance, lives, deaths, res, type.
+        - projected spouses, a dic with key (id, rang) and value is a dic with keys : data, exist, entrance, lives, deaths, type.
+        - projected children, a dic with key (id, rang) and value is a dic with keys : data, exist, entrance, lives, deaths, type.
+        - new retirees a dic : {year : [list of employees that retired that year (their ids)] }
+        - n_new_retirees a list storing number of retirees for each year 
+    """
+
+    # if group doesn't exist in employees create it and set it to be id
+    if not 'group' in list(employees):
+        employees['group'] = employees['id']
+
+    #setting law of retirement
+    if law_retirement_ == None:
+        law_retirement = retire
+        cols_ret = ['age'] 
+    else:
+        law_retirement = law_retirement_[0] if type(law_retirement_) is tuple else law_retirement_
+        #cols_ret = law_retirement_[1]
+        cols_ret = law_retirement_[1] if type(law_retirement_) is tuple else inspect.getfullargspec(law_retirement)[0]
+
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_ret)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
+        
+    #setting law of resignation
+    if law_resignation_ == None:
+        law_resignation = turnover0
+        cols_res = ['age']
+    else:
+        law_resignation = law_resignation_[0] if type(law_resignation_) is tuple else law_resignation_
+        cols_res = law_resignation_[1] if type(law_resignation_) is tuple else inspect.getfullargspec(law_resignation)[0]
+
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_res)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
+        
+    #setting law of marriage
+    if law_marriage_ == None:
+        law_marriage = probaMariage0
+        cols_mar = ['age', 'type']
+    else:
+        law_marriage = law_marriage_[0] if type(law_marriage_) is tuple else law_marriage_
+        cols_mar = law_marriage_[1] if type(law_marriage_) is tuple else inspect.getfullargspec(law_marriage)[0]
+        
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(employees, cols_mar)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in emmloyees : ', unfound_cols)
+        return None
+
+    #setting law of birth
+    if law_birth_ == None:
+        law_birth = probaNaissance0
+        cols_birth = ['age']
+    else:
+        law_birth = law_birth_[0] if type(law_birth_) is tuple else law_birth_
+        cols_birth = law_birth_[1] if type(law_birth_) is tuple else inspect.getfullargspec(law_birth)[0]
+        
+    # verify that columns exist in dataframe
+    unfound_cols = verifyCols(spouses, cols_birth)
+    if len(unfound_cols) > 0:
+        print('Unfound columns in spouses : ', unfound_cols)
+        return None
+    
+    # initialization of projected employees, spouses and children
+    employees_proj = tools.init_employees_proj(employees, MAX_YEARS)
+    spouses_proj = tools.init_spouses_proj(spouses, MAX_YEARS)
+    children_proj = tools.init_children_proj(children, MAX_YEARS)
+
+    # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
+    new_retirees = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
+    
+    #number of retirees for each year
+    n_new_retirees = [0] * MAX_YEARS
+
+    def add_new_employee(id_, year_, ponderation, data_emp):
+        """Adds a new employee in the employees_proj dic.
+        
+        Args:
+        id_: The id of the employee to be added (key of the dic).
+        year_: year of projection when this employee is added : 1, 2,...
+        ponderation : if 0.5 for example,add 50% of an employee. This is used to handle 'rate' of replacement 
+        data_emp : a list of values corresponding to columns in employee
+        
+        
+
+        """
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
+        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS}
+        
+        # updating age0, lives and type
+        employees_proj[id_]['lives'][year_] = ponderation
+        employees_proj[id_]['type'][year_] = 'active'
+        employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
+        
+    def add_new_spouse(employee_id, year_, probMar=1):
+        """Adds a new spouse in the spouses_proj dic.
+        
+        Args:
+        employee_id: The id of the employee attached to this spouse.
+        year_: year of projection when this spouse is added : 1, 2,...
+        entrance : year of entrance
+
+        """
+        
+        if probMar == 0:
+            return
+        
+        # sex of the spouse
+        if employees_proj[employee_id]["data"]["sex"] == 'male':
+            sex_temp = 'female'
+        else:
+            sex_temp = 'male'
+            
+        #live employee (employee will marry only if still alive)
+        live_emp = employees_proj[employee_id]["lives"][year_]
+        
+        #age. It supposed that difference between ages is -/+ age_diff year depending on sex
+        if sex_temp == 'female':
+            age_temp = employees_proj[employee_id]["data"]["age"] - age_diff
+        else:
+            age_temp = employees_proj[employee_id]["data"]["age"] + age_diff
+        
+        #type
+        type_temp = employees_proj[employee_id]["type"][i]
+        
+        #if not already added add it
+        rang = year_
+        if not (employee_id, rang) in spouses_proj:
+            spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
+                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
+                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+            spouses_proj[(employee_id, rang)]['data']['age0'] = age_temp
+        else:
+            spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
+    
+    
+    def add_new_child(employee_id, rang_, year_, rang_child):
+        """Adds a new child in the children_proj dic.
+        
+        Args:
+        employee_id: The id of the employee attached to this child.
+        year_: year of projection when this child is added : 1, 2,...
+        
+        """
+        
+        if employees_proj[employee_id]["data"]["type"] == "active" or employees_proj[employee_id]["data"]["type"] == "retired" :
+            if employees_proj[employee_id]["data"]["sex"] == 'female':
+                args_ = tuple([employees_proj[employee_id]["data"][z] for z in cols_birth])
+                probBirth = law_birth(*args_)
+            else:
+                args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
+                probBirth = law_birth(*args_)
+        else:
+            return
+                
+        if probBirth == 0:
+            return
+        
+        #live employee (or his spouse) (employee or spouse will give birth only if still alive)
+        # if employees_proj[employee_id]["data"]["sex"] == 'male':
+        #     live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
+        # else:
+        #     live_emp = employees_proj[employee_id]["lives"][year_]
+        live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
+        
+        #type
+        type_temp = employees_proj[employee_id]["type"][i]
+        
+        #if not already added add it
+        if not (employee_id, rang_child) in children_proj:
+            children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
+                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
+                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+            children_proj[(employee_id, rang_child)]['data']['age0'] = 0
+        # else:
+        #    children_proj[(employee_id, 1)]['lives'][year_] = children_proj[(employee_id, 1)]['lives'][year_] + live_emp * probBirth
+        
+        
+    # main loop
+    for i in range(1, MAX_YEARS):
+        # employees
+        n_retired = 0.0
+        n_death = 0.0
+        n_resignation = 0.0
+        n_marriage = 0.0
+        departures = {} # a dic storing the number of departures for a group each year
+        
+        #projection of employees
+        for id_e, employee in employees_proj.items():
+               
+            #age of employee
+            age = employee["data"]['age']
+            
+            #probability of surviving
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            
+            #probability of dying
+            death = act.sfs_nQx(age,1, mortalityTable)
+
+            if employee["type"][i-1] == "active":
+                n_death += death * employee['lives'][i-1]
+                # departure by group
+                if employee['data']['group'] in departures:
+                    departures[employee['data']['group']] += death * employee['lives'][i-1]
+                else:
+                    departures[employee['data']['group']] = death * employee['lives'][i-1]
+               
+            #probability of quitting for actives only
+            if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
+                args_ = tuple([employee["data"][z] for z in cols_res])
+                
+                resignation = law_resignation(*args_) #turnover(age)
+            else:
+                resignation = 0
+                
+            n_resignation += resignation * employee['lives'][i-1]
+            
+            # departures by group
+            if employee['data']['group'] in departures:
+                departures[employee['data']['group']] += resignation * employee['lives'][i-1]*(1-death)
+            else:
+                departures[employee['data']['group']] = resignation * employee['lives'][i-1]*(1-death)
+               
+            # if the employee is active check if he will retire
+            if employee["type"][i-1] == "active" or employee["type"][i-1] == "":
+                if not 'year_proj' in cols_ret:
+                    args_ = tuple([employee["data"][z] for z in cols_ret])
+                else:
+                    args_ = tuple([employee["data"][z] for z in cols_ret[:-1]]) + (i,)
+
+                if law_retirement(*args_):
+                    #update number of retired
+                    n_retired += employee['lives'][i-1] * survie * (1-resignation) # was 1* employee['lives'][i-1]
+                    new_retirees[i] = new_retirees[i] + [id_e]  # add id of the employee to the list
+                    
+                    # departures by group
+                    if employee['data']['group'] in departures:
+                        departures[employee['data']['group']] += employee['lives'][i-1]*(1-death)*(1-resignation)
+                    else:
+                        departures[employee['data']['group']] = employee['lives'][i-1]*(1-death)*(1-resignation)
+                    
+                    #update type
+                    employee["type"][i] = "retired"
+                    
+                    #update lives
+                    employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
+                    
+                    #update deaths
+                    employee["deaths"][i] = employee["lives"][i-1] * death * (1-resignation) # was employee["lives"][i-1] * death
+                    
+                    #update number of new retirees
+                    n_new_retirees[i] =  n_retired
+                    
+                    #if just retired we are done, but before update age
+                    employee["data"]['age'] = employee["data"]['age'] + 1
+                    continue
+      
+            #type remains the same as last year
+            employee["type"][i] = employee["type"][i-1]
+            
+            #update lives
+            employee["lives"][i] = employee["lives"][i-1] * survie * (1-resignation)
+            
+            #update deaths
+            employee["deaths"][i] = employee["lives"][i-1] * death * (1-resignation) # was employee["lives"][i-1] * death
+            
+            #update res
+            employee["res"][i] = resignation* employee['lives'][i-1]
+            
+            #handling marriage
+            if employee["type"][i] in marriage_periode:
+                if employee["data"]["familyStatus"] == "not married" : 
+                    args_ = tuple([employee["data"][z] for z in cols_mar])
+                    prob_mar = law_marriage(*args_)  # if equals 1 set familyStatus of employee to married
+                    add_new_spouse(id_e, i, law_marriage(*args_))
+                    n_marriage += 1
+                    if prob_mar==1:
+                        employee["data"]["familyStatus"] = "married"
+
+            #update age of employee
+            employee["data"]['age'] = employee["data"]['age'] + 1
+            
+        #projection of spouses
+        for id_s, spouse in spouses_proj.items():
+            
+            # if new spouse continue (treate next year)
+            if spouse['entrance'] > i:
+                continue
+
+            age = spouse["data"]['age']
+            
+            #probability of surviving
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            
+            #probability of dying
+            death = act.sfs_nQx(age,1, mortalityTable)
+            
+            # the type of spouse is that of his related employee (but only if not widow)
+            if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
+                spouse["type"][i] = employees_proj[id_s[0]]["type"][i]
+            else:
+                spouse["type"][i] = "widow"
+            
+            #probability of quitting (probability that the related employee will quit
+            if spouse["type"][i] == "active":
+                # we have to recalculate resignation because employees_proj[id[0]]['res'][i] contains res of many employees (new recrutes)
+                 args_ = tuple([employees_proj[id_s[0]]["data"][z] for z in cols_res])
+                
+                 resignation = law_resignation(*args_)
+            else:
+                resignation = 0
+           
+            #update lives
+            spouse["lives"][i] = spouse["lives"][i] + spouse["lives"][i-1] * survie * (1-resignation)
+            
+            #update deaths
+            spouse["deaths"][i] = spouse["deaths"][i] + spouse["lives"][i-1] * death
+            
+            #handling births for active and retired only
+            # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
+            #     add_new_child(id_s[0],id_s[1], i)
+
+            if spouse["type"][i] in birth_periode:
+                add_new_child(id_s[0],id_s[1], i, 100*id_s[1] + i)
+
+            #update age of spouse
+            spouse["data"]['age'] = spouse["data"]['age'] + 1
+            
+        #projection of children
+        for id_c, child in children_proj.items():
+            
+            # if new child continue (treate next year)
+            if child['entrance'] > i:
+                continue
+            
+            #update age of children
+            age = child["data"]['age']
+            
+            #probability of surviving
+            survie = act.sfs_nPx(age,1, mortalityTable)
+            
+            #probability of dying
+            death = act.sfs_nQx(age,1, mortalityTable)
+            
+            # the type of child is that of his related employee (but only if not widow)
+            if child["type"][i-1] == "active" or child["type"][i-1] == "retired" or child["type"][i-1] == '':
+                child["type"][i] = employees_proj[id_c[0]]["type"][i]
+            else:
+                child["type"][i] = "widow"
+            
+            #probability of quitting (probability that the related employee will quit)
+            if child["type"][i] == "active":
+                # we have to recalculate resignation because employees_proj[id[0]]['res'][i] contains res of many employees (new recrues)
+                 args_ = tuple([employees_proj[id_c[0]]["data"][z] for z in cols_res])
+                
+                 resignation = law_resignation(*args_)
+            else:
+                resignation = 0
+           
+            #update lives
+            child["lives"][i] = child["lives"][i-1] * survie * (1-resignation)
+            
+            #update deaths
+            child["deaths"][i] = child["lives"][i-1] * death
+            
+            #update age of spouses
+            child["data"]['age'] = child["data"]['age'] + 1 
+            
+        
+        # replacement of departures
+        if not (law_replacement_ == None):
+            new_emp = law_replacement_(departures, i) # new_emp is a list of dics having keys : key, number and data (list of values corresponding to employees)
+            for ne in new_emp:
+                #add_new_employee('new_employee_year_' + str(i) + '_key_' + str(ne['key']), i, ne['number'],ne['data']) 
+                add_new_employee(str(ne['key']), i, ne['number'],ne['data']) 
+        
+        
+    return employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
