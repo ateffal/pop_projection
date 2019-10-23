@@ -43,7 +43,7 @@ def init_spouses_proj(spouses, MAX_YEARS):
 
     for i in range(n_s):
         spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS,'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1)}
         spouses_proj[(spouses["id"][i], spouses["rang"][i])]['data']['age0'] = spouses["age"][i]
 
     return spouses_proj

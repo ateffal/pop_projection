@@ -302,7 +302,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         rang = year_
         if not (employee_id, rang) in spouses_proj:
             spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
+                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS,   
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
             spouses_proj[(employee_id, rang)]['data']['age0'] = age_temp
         else:
@@ -490,6 +490,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             
             #update deaths
             spouse["deaths"][i] = spouse["deaths"][i] + spouse["lives"][i-1] * death
+
+            # update rev
+            if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
+                spouse["rev"][i] = spouse["lives"][i] * employees_proj[id_s[0]]["deaths"][i]
             
             #handling births for active and retired only
             # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
@@ -738,7 +742,7 @@ def individual_employees_numbers(employees_proj_):
 
 def individual_spouses_numbers(spouses_proj_): 
     """
-    Returns a tuple of four data frames : projected lives, deaths and 
+    Returns a tuple of four data frames : projected lives, deaths, reversion and 
     type for spouses
     
     Parameters
@@ -754,6 +758,7 @@ def individual_spouses_numbers(spouses_proj_):
     lives = []
     deaths = []
     types = []
+    rev = []
     
     # Store data in lists
     for spouse in spouses_proj_:
@@ -764,6 +769,7 @@ def individual_spouses_numbers(spouses_proj_):
         lives.append(spouses_proj_[spouse]['lives'])
         deaths.append(spouses_proj_[spouse]['deaths'])
         types.append(spouses_proj_[spouse]['type'])
+        rev.append(spouses_proj_[spouse]['rev'])
 
     # number of spouses
     n_spouses = len(ids)
@@ -775,14 +781,17 @@ def individual_spouses_numbers(spouses_proj_):
     df_lives = pd.DataFrame()
     df_deaths = pd.DataFrame()
     df_types = pd.DataFrame()
+    df_rev = pd.DataFrame()
 
-    #add the id column
+    #add the id and rang columns
     df_lives['id'] = ids
     df_lives['rang'] = rangs
     df_deaths['id'] = ids
     df_deaths['rang'] = rangs
     df_types['id'] = ids
     df_types['rang'] = rangs
+    df_rev['id'] = ids
+    df_rev['rang'] = rangs
 
     # data columns
     cols_data = data[0].keys()
@@ -797,24 +806,23 @@ def individual_spouses_numbers(spouses_proj_):
         df_lives[c] = temp
         df_deaths[c] = temp
         df_types[c] = temp
-
-        # df_lives[c] = [d[c] for d in data]
-        # df_deaths[c] = [d[c] for d in data]
-        # df_types[c] = [d[c] for d in data]
+        df_rev[c] = temp
     
     df_lives['entrance'] = entrances
     df_deaths['entrance'] = entrances
     df_types['entrance'] = entrances
+    df_rev['entrance'] = entrances
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
         df_deaths['year_' + str(year)] = [deaths[spouse][year] for spouse in range(n_spouses)]
         df_types['year_' + str(year)] = [types[spouse][year] for spouse in range(n_spouses)]
+        df_rev['year_' + str(year)] = [rev[spouse][year] for spouse in range(n_spouses)]
 
-    return df_lives, df_deaths, df_types
+    return df_lives, df_deaths, df_types, df_rev
 
 
-def individual_children_numbers(children_proj_): 
+def individual_children_numbers(children_proj_, max_child_age = 120): 
     """
     Returns a tuple of four data frames : projected lives, deaths and 
     type for children
@@ -822,7 +830,7 @@ def individual_children_numbers(children_proj_):
     Parameters
     ----------
     children_proj_ : dic of the form of that returned by projeterEffectif
-        
+    max_child_age  : maximum age after which the child is excluded from the population
     
     """
     ids = []
@@ -876,9 +884,6 @@ def individual_children_numbers(children_proj_):
         df_deaths[c] = temp
         df_types[c] = temp
 
-        # df_lives[c] = [d[c] if c in d else '' for d in data]
-        # df_deaths[c] = [d[c] if c in d else '' for d in data]
-        # df_types[c] = [d[c] if c in d else ''for d in data]
     
     df_lives['entrance'] = entrances
     df_deaths['entrance'] = entrances
@@ -1058,6 +1063,7 @@ def new_employees(employees_proj_, MAX_YEARS):
 
 
 def simulateNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
+
                     law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
                     law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
     
@@ -1500,3 +1506,9 @@ def simulateNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', M
         
         
     return employees_proj, spouses_proj, children_proj, new_retirees, n_new_retirees
+
+
+
+
+def individual_widows_numbers(indiv_emp_numbers, indiv_sps_numbers):
+    return ''
