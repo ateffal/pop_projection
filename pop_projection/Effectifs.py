@@ -300,10 +300,11 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         
         #if not already added add it
         rang = year_
-        if not (employee_id, rang) in spouses_proj:
+        if not ((employee_id, rang) in spouses_proj):
             spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS,   
-                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+
+            spouses_proj[(employee_id, rang)]['rev'] = [0]*MAX_YEARS
             spouses_proj[(employee_id, rang)]['data']['age0'] = age_temp
         else:
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
@@ -493,7 +494,14 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
 
             # update rev
             if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
-                spouse["rev"][i] = spouse["lives"][i] * employees_proj[id_s[0]]["deaths"][i]
+                # cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(i)])
+                # cum_deaths += employees_proj[id_s[0]]["deaths"][i]
+                # spouse["rev"][i] = spouse["lives"][i] * employees_proj[id_s[0]]["deaths"][i]
+                # cum_deaths = act.sfs_nQx(employees_proj[id_s[0]]["data"]["age0"]+spouse["entrance"]-employees_proj[id_s[0]]["entrance"],
+                #              i-spouse["entrance"], mortalityTable)
+                cum_deaths = employees_proj[id_s[0]]["lives"][spouse["entrance"]] - employees_proj[id_s[0]]["lives"][i]
+                cum_deaths = (cum_deaths - sum([employees_proj[id_s[0]]["res"][k] for k in range(spouse["entrance"], i+1)]))/employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]]
+                spouse["rev"][i] = spouse["lives"][i] * cum_deaths
             
             #handling births for active and retired only
             # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
@@ -602,6 +610,7 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
 
     # number of living widows
     effectif_ayants_cause = [0] * MAX_YEARS
+    effectif_nouveaux_ayants_cause = [0]*MAX_YEARS
 
     for i in range(MAX_YEARS):
         for a in employees_proj_.values():
@@ -628,6 +637,8 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
                 
             if a['type'][i] == 'widow':
                 effectif_ayants_cause[i] = effectif_ayants_cause[i] + a['lives'][i]
+            # new widows
+            effectif_nouveaux_ayants_cause[i] = effectif_nouveaux_ayants_cause[i] + a['rev'][i]
 
         if len(children_proj_) == 0:
             continue
@@ -651,12 +662,12 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites, effectif_enfants_ayant_cause)]
 
     Data = {'Year':list(range(MAX_YEARS)), 'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
-            'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_conjoints_actifs' : effectif_conjoints_actifs,
+            'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_nouveaux_ayants_cause' : effectif_nouveaux_ayants_cause,'effectif_conjoints_actifs' : effectif_conjoints_actifs,
             'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
             'effectif_enfants_retraites' : effectif_enfants_retraites, 'effectif_enfants_ayant_cause' : effectif_enfants_ayant_cause,'Total Children' : totalChildren}
 
     Effectifs = pd.DataFrame(data=Data,
-                columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause',
+                columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause','effectif_nouveaux_ayants_cause',
                          'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 
                          'effectif_enfants_retraites', 'effectif_enfants_ayant_cause','Total Children' ]) 
     return Effectifs
