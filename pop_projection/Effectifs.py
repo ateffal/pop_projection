@@ -108,6 +108,49 @@ def verifyCols(data_, cols):
     
     return temp
 
+
+def get_cols_values(employees_proj_, id_e, spouses_proj_, 
+                    id_s,children_proj_,id_c, alternate_proj_, id_alt, cols, year_):
+    """
+        Returns the values of the keys(that are in cols) of data(data is a key in the dic population) : population[id_]. 
+        population is either employees_proj_, spouses_proj_ or chidren_proj_
+
+        Args:
+        employees_proj_ (dic) : Projected employees.
+        id_e (string)  : A key value of employees_proj_
+        spouses_proj_ (dic) : Projected spouses.
+        id_s (tuple : (string, string))  : A key value of spouses_proj_
+        children_proj_ (dic) : Projected children.
+        id_c (tuple: (string, string))  : A key value of children_proj_
+        cols(list)       : Each element of the list is either a tuple of the form : (col(string), projected population (dic))
+                           or just an string element representing a column 
+        year_ (int)      : year of projection
+
+        Returns:
+        values : list of values
+
+    """
+    values = []
+    for c in cols:
+        if type(c) is tuple:
+            if c[1] == 'employees':
+                values.append(employees_proj_[id_e]["data"][c[0]])
+            if c[1] == 'spouses':
+                values.append(spouses_proj_[id_s]["data"][c[0]])
+            if c[1] == 'children':
+                values.append(children_proj_[id_c]["data"][c[0]])
+        else:
+            if c=='year_proj':
+                values.append(year_)
+            else:
+                values.append(alternate_proj_[id_alt]["data"][c])
+
+    return tuple(values)
+
+
+
+    
+
 def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
                     law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
                     law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
@@ -231,15 +274,26 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         cols_birth = law_birth_[1] if type(law_birth_) is tuple else inspect.getfullargspec(law_birth)[0]
         
     # verify that columns exist in dataframe
-    unfound_cols = verifyCols(spouses, cols_birth)
+    unfound_cols = []
+    temp = None
+    for c in cols_birth:
+        if type(c) is tuple:
+            if c[1] == 'employees':
+                unfound_cols += verifyCols(employees, [c[0]])
+            if c[1] == 'spouses':
+                unfound_cols += verifyCols(spouses, [c[0]])
+        else:
+            unfound_cols += verifyCols(spouses, [c])
+
+    # unfound_cols = verifyCols(spouses, cols_birth)
     if len(unfound_cols) > 0:
         print('Unfound columns in spouses : ', unfound_cols)
         return None
     
     # initialization of projected employees, spouses and children
     employees_proj = tools.init_employees_proj(employees, MAX_YEARS)
-    spouses_proj = tools.init_spouses_proj(spouses, MAX_YEARS)
-    children_proj = tools.init_children_proj(children, MAX_YEARS)
+    spouses_proj = tools.init_spouses_proj(spouses, MAX_YEARS, employees_proj)
+    children_proj = tools.init_children_proj(children, MAX_YEARS, employees_proj)
 
     # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
     new_retirees = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
@@ -266,6 +320,8 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         employees_proj[id_]['lives'][year_] = ponderation
         employees_proj[id_]['type'][year_] = 'active'
         employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
+        employees_proj[id_]['spouses_number'] = 0
+        employees_proj[id_]['children_number'] = 0
         
     def add_new_spouse(employee_id, year_, probMar=1):
         """Adds a new spouse in the spouses_proj dic.
@@ -309,7 +365,9 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         else:
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
     
-    
+        # update number of spouses
+        employees_proj[employee_id]['spouses_number'] += live_emp * probMar
+        
     def add_new_child(employee_id, rang_, year_, rang_child):
         """Adds a new child in the children_proj dic.
         
@@ -321,10 +379,14 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         
         if employees_proj[employee_id]["data"]["type"] == "active" or employees_proj[employee_id]["data"]["type"] == "retired" :
             if employees_proj[employee_id]["data"]["sex"] == 'female':
-                args_ = tuple([employees_proj[employee_id]["data"][z] for z in cols_birth])
+                # args_ = tuple([employees_proj[employee_id]["data"][z] for z in cols_birth])
+                args_ = get_cols_values(employees_proj,employee_id, spouses_proj,(employee_id, rang_),
+                None, None, employees_proj,employee_id, cols_birth, i)
                 probBirth = law_birth(*args_)
             else:
-                args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
+                # args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
+                args_ = get_cols_values(employees_proj,employee_id, spouses_proj,(employee_id, rang_),
+                None, None, spouses_proj,(employee_id, rang_), cols_birth,i)
                 probBirth = law_birth(*args_)
         else:
             return
@@ -446,7 +508,8 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             #handling marriage
             if employee["type"][i] in marriage_periode:
                 if employee["data"]["familyStatus"] == "not married" : 
-                    args_ = tuple([employee["data"][z] for z in cols_mar])
+                    # args_ = tuple([employee["data"][z] for z in cols_mar])
+                    args_ = get_cols_values(None, None, None, None, None, None, employees_proj, id_e, cols_mar,i)
                     prob_mar = law_marriage(*args_)  # if equals 1 set familyStatus of employee to married
                     add_new_spouse(id_e, i, law_marriage(*args_))
                     n_marriage += 1
@@ -500,7 +563,9 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 # cum_deaths = act.sfs_nQx(employees_proj[id_s[0]]["data"]["age0"]+spouse["entrance"]-employees_proj[id_s[0]]["entrance"],
                 #              i-spouse["entrance"], mortalityTable)
                 cum_deaths = employees_proj[id_s[0]]["lives"][spouse["entrance"]] - employees_proj[id_s[0]]["lives"][i]
-                cum_deaths = (cum_deaths - sum([employees_proj[id_s[0]]["res"][k] for k in range(spouse["entrance"], i+1)]))/employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]]
+                cum_deaths = (cum_deaths - sum([employees_proj[id_s[0]]["res"][k] for k in range(spouse["entrance"], i+1)]))
+                if employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]] !=0:
+                    cum_deaths /= employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]]
                 spouse["rev"][i] = spouse["lives"][i] * cum_deaths
             
             #handling births for active and retired only
@@ -690,6 +755,8 @@ def individual_employees_numbers(employees_proj_):
     deaths = []
     res = []
     types = []
+    nb_spouses = []
+    nb_children = []
 
     
     # Store data in lists
@@ -701,6 +768,8 @@ def individual_employees_numbers(employees_proj_):
         deaths.append(employees_proj_[emp]['deaths'])
         res.append(employees_proj_[emp]['res'])
         types.append(employees_proj_[emp]['type'])
+        nb_spouses.append(employees_proj_[emp]['spouses_number'])
+        nb_children.append(employees_proj_[emp]['children_number'])
 
     # number of employees
     n_emp = len(ids)
@@ -741,6 +810,16 @@ def individual_employees_numbers(employees_proj_):
     df_deaths['entrance'] = entrances
     df_res['entrance'] = entrances
     df_types['entrance'] = entrances
+
+    df_lives['spouses_number'] = nb_spouses
+    df_deaths['spouses_number'] = nb_spouses
+    df_res['spouses_number'] = nb_spouses
+    df_types['spouses_number'] = nb_spouses
+
+    df_lives['children_number'] = nb_children
+    df_deaths['children_number'] = nb_children
+    df_res['children_number'] = nb_children
+    df_types['children_number'] = nb_children
 
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[emp][year] for emp in range(n_emp)]
@@ -1289,7 +1368,17 @@ def simulateNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', M
                 args_ = tuple([employees_proj[employee_id]["data"][z] for z in cols_birth])
                 probBirth = law_birth(*args_)
             else:
-                args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
+                # args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
+                args_=[]
+                for z in cols_birth:
+                    if type(z) is tuple:
+                        if z[1]=='employees':
+                            args_.append(employees_proj[employee_id]["data"][z[0]])
+                        if z[1]=='spouses':
+                            args_.append(spouses_proj[(employee_id, rang_)]["data"][z[0]])
+                    else:
+                        args_.append(spouses_proj[(employee_id, rang_)]["data"][z])
+                args_ = tuple(args_)
                 probBirth = law_birth(*args_)
         else:
             return
@@ -1523,3 +1612,9 @@ def simulateNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', M
 
 def individual_widows_numbers(indiv_emp_numbers, indiv_sps_numbers):
     return ''
+
+
+
+
+
+
