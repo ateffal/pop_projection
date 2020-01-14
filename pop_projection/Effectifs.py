@@ -15,6 +15,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+EMPLOYEES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
+                'res', 'type', 'numbers', 'spouses_number', 'children_number']
+
+SPOUSES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
+                'rev', 'type', 'numbers']
+
+CHILDREN_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 'type', 'numbers']
+
+
+
 def retire(age):
     """
     Retirement at 55 years
@@ -95,16 +105,21 @@ def probaNaissance(age):
     
 
 def verifyCols(data_, cols):
-    '''
-    verify that list of cols exist in data_
+    """
+    Verifies that each element in cols exist in columns of data_
 
-    '''
+    Args:
+    data_ (DataFrame) : the dataframe whose columns to search in
+    cols (list) : list of columns to search for
+
+    """
     temp = []
     cols_data = list(data_.columns)
     for c in cols:
         if c != 'year_proj':
             if not c in cols_data:
-                temp.append(c)
+                if not c in EMPLOYEES_PROJ_KEYS:
+                    temp.append(c)
     
     return temp
 
@@ -131,19 +146,33 @@ def get_cols_values(employees_proj_, id_e, spouses_proj_,
 
     """
     values = []
+            
     for c in cols:
         if type(c) is tuple:
             if c[1] == 'employees':
-                values.append(employees_proj_[id_e]["data"][c[0]])
+                if c[0] in employees_proj_[id_e]["data"]:
+                    values.append(employees_proj_[id_e]["data"][c[0]])
+                else:
+                    values.append(employees_proj_[id_e][c[0]])
             if c[1] == 'spouses':
-                values.append(spouses_proj_[id_s]["data"][c[0]])
+                if c[0] in spouses_proj_[id_s]["data"]:
+                    values.append(spouses_proj_[id_s]["data"][c[0]])
+                else:
+                    values.append(spouses_proj_[id_s][c[0]])
             if c[1] == 'children':
-                values.append(children_proj_[id_c]["data"][c[0]])
+                if c[0] in children_proj_[id_c]["data"]:
+                    values.append(children_proj_[id_c]["data"][c[0]])
+                else:
+                    values.append(children_proj_[id_c][c[0]])
+            
         else:
             if c=='year_proj':
                 values.append(year_)
             else:
-                values.append(alternate_proj_[id_alt]["data"][c])
+                if c in alternate_proj_[id_alt]["data"]:
+                    values.append(alternate_proj_[id_alt]["data"][c])
+                else:
+                    values.append(alternate_proj_[id_alt][c])
 
     return tuple(values)
 
@@ -314,14 +343,14 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
 
         """
         employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
-        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS}
+        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS, 'spouses_number':[0]*MAX_YEARS,'children_number':[0]*MAX_YEARS}
         
         # updating age0, lives and type
         employees_proj[id_]['lives'][year_] = ponderation
         employees_proj[id_]['type'][year_] = 'active'
         employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
-        employees_proj[id_]['spouses_number'] = 0
-        employees_proj[id_]['children_number'] = 0
+        # employees_proj[id_]['spouses_number'] = 0
+        # employees_proj[id_]['children_number'] = 0
         
     def add_new_spouse(employee_id, year_, probMar=1):
         """Adds a new spouse in the spouses_proj dic.
@@ -361,12 +390,13 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
 
             spouses_proj[(employee_id, rang)]['rev'] = [0]*MAX_YEARS
+            spouses_proj[(employee_id, rang)]['res'] = [0]*MAX_YEARS
             spouses_proj[(employee_id, rang)]['data']['age0'] = age_temp
         else:
             spouses_proj[(employee_id, rang)]['lives'][year_] = spouses_proj[(employee_id, rang)]['lives'][year_] + live_emp * probMar
     
         # update number of spouses
-        employees_proj[employee_id]['spouses_number'] += live_emp * probMar
+        employees_proj[employee_id]['spouses_number'][year_] += live_emp * probMar
         
     def add_new_child(employee_id, rang_, year_, rang_child):
         """Adds a new child in the children_proj dic.
@@ -386,7 +416,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             else:
                 # args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
                 args_ = get_cols_values(employees_proj,employee_id, spouses_proj,(employee_id, rang_),
-                None, None, spouses_proj,(employee_id, rang_), cols_birth,i)
+                None, None, employees_proj,employee_id, cols_birth, i)
                 probBirth = law_birth(*args_)
         else:
             return
@@ -407,11 +437,12 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         #if not already added add it
         if not (employee_id, rang_child) in children_proj:
             children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS,  
+                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS,  
                 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
             children_proj[(employee_id, rang_child)]['data']['age0'] = 0
-        # else:
-        #    children_proj[(employee_id, 1)]['lives'][year_] = children_proj[(employee_id, 1)]['lives'][year_] + live_emp * probBirth
+    
+            # update number of children
+            employees_proj[employee_id]['children_number'][year_] += live_emp * probBirth
         
         
     # main loop
@@ -555,6 +586,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             #update deaths
             spouse["deaths"][i] = spouse["deaths"][i] + spouse["lives"][i-1] * death
 
+            # update res
+            if spouse["type"][i] == "active":
+                spouse["res"][i] = spouse["res"][i] + spouse["lives"][i-1] * resignation * survie
+
             # update rev
             if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
                 # cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(i)])
@@ -577,6 +612,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
 
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
+
+            # update number of spouses of the corresponding employee
+            if spouse["type"][i]=="active" or spouse["type"][i]=="retired":
+                employees_proj[id_s[0]]['spouses_number'][i] +=  spouse["lives"][i]
             
         #projection of children
         for id_c, child in children_proj.items():
@@ -615,8 +654,12 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             #update deaths
             child["deaths"][i] = child["lives"][i-1] * death
             
-            #update age of spouses
-            child["data"]['age'] = child["data"]['age'] + 1 
+            #update age of child
+            child["data"]['age'] = child["data"]['age'] + 1
+
+            # update number of children of the corresponding employee
+            if child["type"][i]=="active" or child["type"][i]=="retired":
+                employees_proj[id_c[0]]['children_number'][i] +=  child["lives"][i]
             
         
         # replacement of departures
@@ -768,8 +811,8 @@ def individual_employees_numbers(employees_proj_):
         deaths.append(employees_proj_[emp]['deaths'])
         res.append(employees_proj_[emp]['res'])
         types.append(employees_proj_[emp]['type'])
-        nb_spouses.append(employees_proj_[emp]['spouses_number'])
-        nb_children.append(employees_proj_[emp]['children_number'])
+        nb_spouses.append(employees_proj_[emp]['spouses_number'][-1])
+        nb_children.append(employees_proj_[emp]['children_number'][-1])
 
     # number of employees
     n_emp = len(ids)
@@ -849,6 +892,7 @@ def individual_spouses_numbers(spouses_proj_):
     deaths = []
     types = []
     rev = []
+    res = []
     
     # Store data in lists
     for spouse in spouses_proj_:
@@ -860,6 +904,7 @@ def individual_spouses_numbers(spouses_proj_):
         deaths.append(spouses_proj_[spouse]['deaths'])
         types.append(spouses_proj_[spouse]['type'])
         rev.append(spouses_proj_[spouse]['rev'])
+        res.append(spouses_proj_[spouse]['res'])
 
     # number of spouses
     n_spouses = len(ids)
@@ -872,6 +917,7 @@ def individual_spouses_numbers(spouses_proj_):
     df_deaths = pd.DataFrame()
     df_types = pd.DataFrame()
     df_rev = pd.DataFrame()
+    df_res = pd.DataFrame()
 
     #add the id and rang columns
     df_lives['id'] = ids
@@ -882,6 +928,8 @@ def individual_spouses_numbers(spouses_proj_):
     df_types['rang'] = rangs
     df_rev['id'] = ids
     df_rev['rang'] = rangs
+    df_res['id'] = ids
+    df_res['rang'] = rangs
 
     # data columns
     cols_data = data[0].keys()
@@ -897,19 +945,22 @@ def individual_spouses_numbers(spouses_proj_):
         df_deaths[c] = temp
         df_types[c] = temp
         df_rev[c] = temp
+        df_res[c] = temp
     
     df_lives['entrance'] = entrances
     df_deaths['entrance'] = entrances
     df_types['entrance'] = entrances
     df_rev['entrance'] = entrances
+    df_res['entrance'] = entrances
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[spouse][year] for spouse in range(n_spouses)]
         df_deaths['year_' + str(year)] = [deaths[spouse][year] for spouse in range(n_spouses)]
         df_types['year_' + str(year)] = [types[spouse][year] for spouse in range(n_spouses)]
         df_rev['year_' + str(year)] = [rev[spouse][year] for spouse in range(n_spouses)]
+        df_res['year_' + str(year)] = [res[spouse][year] for spouse in range(n_spouses)]
 
-    return df_lives, df_deaths, df_types, df_rev
+    return df_lives, df_deaths, df_types, df_rev, df_res
 
 
 def individual_children_numbers(children_proj_, max_child_age = 120): 
@@ -1614,7 +1665,13 @@ def individual_widows_numbers(indiv_emp_numbers, indiv_sps_numbers):
     return ''
 
 
-
+# TODO : 
+# 1 - add res in children_proj
+# 2 - add rev in children_proj
+# 3 - projectNumbers functions can accept laws parameters as curves : 
+#       - one dimension curve : column - value
+#       - two dimensions curve : column(1) - column(2) - value
+#       - n dimenions curve : column(1) - ...- column(n) - value 
 
 
 
