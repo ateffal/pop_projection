@@ -247,12 +247,25 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         - n_new_retirees a list storing number of retirees for each year 
     """
 
-    # if group doesn't exist in employees create it and set it to be id
+    # if group doesn't exist in employees create it and set it to be 1 for active and 0 for retired
     if not 'group' in list(employees):
         # employees['group'] = employees['id']
         employees['group']=1
         employees.loc[employees['type']=='active',['group']] = 1
         employees.loc[employees['type']=='retired',['group']] = 0
+        
+        
+     # if column number doesn't exist in employees create it and set it to for all
+    if not 'number' in list(employees):
+        employees['number'] = 1
+
+    # if column number doesn't exist in spouses create it and set it to for all
+    if not 'number' in list(spouses):
+        spouses['number'] = 1
+
+    # if column number doesn't exist in children create it and set it to for all
+    if not 'number' in list(children):
+        children['number'] = 1
 
     #setting law of retirement
     if law_retirement_ == None:
