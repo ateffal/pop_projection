@@ -249,7 +249,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
 
     # if group doesn't exist in employees create it and set it to be id
     if not 'group' in list(employees):
-        employees['group'] = employees['id']
+        # employees['group'] = employees['id']
+        employees['group']=1
+        employees.loc[employees['type']=='active',['group']] = 1
+        employees.loc[employees['type']=='retired',['group']] = 0
 
     #setting law of retirement
     if law_retirement_ == None:
