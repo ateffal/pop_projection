@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+pop_projection/test/*.py[cod]
 
 # Distribution / packaging
 .Python
