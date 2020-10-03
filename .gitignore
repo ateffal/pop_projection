@@ -120,3 +120,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+pop_projection/test/__pycache__/*
