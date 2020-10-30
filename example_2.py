@@ -10,7 +10,6 @@ Example 1 - modified 2020-09-30
 # # Global numbers by year
 
 
-
 # Import necessary packages
 from pop_projection import Effectifs as eff
 import pandas as pd
@@ -80,15 +79,18 @@ children = pd.read_csv(path + "children.csv",sep=";", decimal = ",")
 
 # Projection of population
 # Number of years to project
-MAX_ANNEES = 100
+MAX_ANNEES = 30
 
 # Projection
-numbers_ = eff.projectNumbers(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = law_replacement1)
+numbers_ = eff.projectNumbers(employees, spouses, children, 'TV 88-90', MAX_ANNEES, law_replacement_ = law_replacement1, max_child_age=23)
 
 # global numbers
 global_numb = eff.globalNumbers(numbers_[0], numbers_[1], numbers_[2], MAX_ANNEES)
 
 # printing results
-print(global_numb)
+print(global_numb[['effectif_enfants_actifs', 'effectif_enfants_retraites', 
+'effectif_enfants_ayant_cause',  'Total Children']])
 
 # print(eff.individual_employees_numbers(numbers_[0])[0])
+children_numbers = eff.individual_children_numbers(numbers_[2])
+children_numbers[0].to_csv('./results/children-lives.csv', index=False, sep=';')

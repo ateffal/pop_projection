@@ -180,9 +180,7 @@ def get_cols_values(employees_proj_, id_e, spouses_proj_,
 
     
 
-def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None, 
-                    law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'],
-                    law_birth_ = None, birth_periode = ['active', 'retired'], law_replacement_ =  None):
+def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None,  law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'], law_birth_ = None, birth_periode = ['active', 'retired'], max_child_age = 120, law_replacement_ =  None):
     
     """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
         mortality, retirement, resignation, marriage, birth and replacement.
@@ -639,9 +637,14 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             # if new child continue (treate next year)
             if child['entrance'] > i:
                 continue
+
             
             #update age of children
             age = child["data"]['age']
+
+            # if age of child equals max_child_age, continue
+            if age >= max_child_age:
+                continue
             
             #probability of surviving
             survie = act.sfs_nPx(age,1, mortalityTable)
@@ -979,7 +982,7 @@ def individual_spouses_numbers(spouses_proj_):
     return df_lives, df_deaths, df_types, df_rev, df_res
 
 
-def individual_children_numbers(children_proj_, max_child_age = 120): 
+def individual_children_numbers(children_proj_): 
     """
     Returns a tuple of four data frames : projected lives, deaths and 
     type for children
