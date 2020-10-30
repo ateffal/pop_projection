@@ -4,7 +4,7 @@
 Created on Mon May  7 14:08:56 2018
 Last modified October 30 18:41:00 2019
 
-@author: Amine TEFFAL
+@author: Amine TEFFAL - a.teffal@gmail.com
 
 """
 
