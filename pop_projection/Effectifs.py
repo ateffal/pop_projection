@@ -459,12 +459,16 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         #if not already added add it
         if not (employee_id, rang_child) in children_proj:
             children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS,  
-                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+                'entrance':year_, 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS, 
+                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1), 'number':live_emp * probBirth}
             children_proj[(employee_id, rang_child)]['data']['age0'] = 0
+            
+            # update number in data dic
+            children_proj[(employee_id, rang_child)]['data']['number'] = live_emp * probBirth
     
             # update number of children
-            employees_proj[employee_id]['children_number'][year_] += live_emp * probBirth
+            employees_proj[employee_id]['children_number'][year_] = employees_proj[employee_id]['children_number'][year_] + live_emp * probBirth
+            employees_proj[employee_id]['children_counter'] += probBirth
         
         
     # main loop
