@@ -17,12 +17,13 @@ import numpy as np
 import random
 
 EMPLOYEES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
-                'res', 'type', 'numbers', 'spouses_number', 'children_number']
+                'res', 'type', 'numbers', 'spouses_number', 'spouses_counter', 
+                       'children_number', 'children_counter', 'retirement']
 
 SPOUSES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
-                'rev', 'type', 'numbers']
+                'rev', 'type', 'numbers', 'retirement']
 
-CHILDREN_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 'type', 'numbers']
+CHILDREN_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 'type', 'numbers', 'retirement']
 
 
 
