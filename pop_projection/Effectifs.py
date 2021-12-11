@@ -580,7 +580,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         for id_s, spouse in spouses_proj.items():
             
             # if new spouse continue (treate next year)
-            if spouse['entrance'] > i:
+            if spouse['entrance'] >= i:
                 continue
 
             age = spouse["data"]['age']
@@ -617,24 +617,21 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 spouse["res"][i] = spouse["res"][i] + spouse["lives"][i-1] * resignation * survie
 
             # update rev
-            if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
-                # cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(i)])
-                # cum_deaths += employees_proj[id_s[0]]["deaths"][i]
-                # spouse["rev"][i] = spouse["lives"][i] * employees_proj[id_s[0]]["deaths"][i]
-                # cum_deaths = act.sfs_nQx(employees_proj[id_s[0]]["data"]["age0"]+spouse["entrance"]-employees_proj[id_s[0]]["entrance"],
-                #              i-spouse["entrance"], mortalityTable)
-                cum_deaths = employees_proj[id_s[0]]["lives"][spouse["entrance"]] - employees_proj[id_s[0]]["lives"][i]
-                cum_deaths = (cum_deaths - sum([employees_proj[id_s[0]]["res"][k] for k in range(spouse["entrance"], i+1)]))
-                if employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]] !=0:
-                    cum_deaths /= employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]]
-                spouse["rev"][i] = spouse["lives"][i] * cum_deaths
+            if spouse["data"]["type"] != "widow":
+                if 'retired' in employees_proj[id_s[0]]["type"]:
+                    year_ret = employees_proj[id_s[0]]["type"].index('retired')
+                    if i>= year_ret:
+                        cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(year_ret, i+1)])
+                        if spouse["number"] !=0:
+                            cum_deaths = cum_deaths/spouse["number"]
+                            spouse["rev"][i] = spouse["lives"][i] * cum_deaths
+                        else:
+                            spouse["rev"][i] = 0
             
             #handling births for active and retired only
-            # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
-            #     add_new_child(id_s[0],id_s[1], i)
-
             if spouse["type"][i] in birth_periode:
-                add_new_child(id_s[0],id_s[1], i, 100*id_s[1] + i)
+                add_new_child(id_s[0],id_s[1], i  , employees_proj[id_s[0]]["children_counter"] + 1000)
+                # add_new_child(id_s[0],id_s[1], i , 100*id_s[1] + i)
 
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
