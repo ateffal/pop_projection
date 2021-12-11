@@ -406,7 +406,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         rang = year_
         if not ((employee_id, rang) in spouses_proj):
             spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+                'entrance':(year_), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1), 'number':live_emp*probMar}
 
             spouses_proj[(employee_id, rang)]['rev'] = [0]*MAX_YEARS
             spouses_proj[(employee_id, rang)]['res'] = [0]*MAX_YEARS
@@ -416,6 +416,9 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
     
         # update number of spouses
         employees_proj[employee_id]['spouses_number'][year_] += live_emp * probMar
+        
+        # update number in data dic
+        spouses_proj[(employee_id, rang)]['data']['number'] = live_emp * probMar
         
     def add_new_child(employee_id, rang_, year_, rang_child):
         """Adds a new child in the children_proj dic.
