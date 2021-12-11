@@ -358,15 +358,18 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         
 
         """
-        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
-        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS, 'spouses_number':[0]*MAX_YEARS,'children_number':[0]*MAX_YEARS}
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':1, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
+        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS,'number' : ponderation,'numbers':[''] * MAX_YEARS, 'spouses_number':[0]*MAX_YEARS,
+        'children_number':[0]*MAX_YEARS, 'children_counter':0}
         
         # updating age0, lives and type
         employees_proj[id_]['lives'][year_] = ponderation
         employees_proj[id_]['type'][year_] = 'active'
         employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
-        # employees_proj[id_]['spouses_number'] = 0
-        # employees_proj[id_]['children_number'] = 0
+        employees_proj[id_]['numbers'][year_] = ponderation
+        
+        # update number in data dic 
+        employees_proj[id_]['data']['number'] = ponderation
         
     def add_new_spouse(employee_id, year_, probMar=1):
         """Adds a new spouse in the spouses_proj dic.
