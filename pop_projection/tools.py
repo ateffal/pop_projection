@@ -23,17 +23,17 @@ def init_employees_proj(employees, MAX_YEARS):
         if employees["type"][i] == "active":
             employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
                 'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 
-                'type':['active'] + ['']*(MAX_YEARS-1), 'numbers':[employees["number"][i]] + [0]*(MAX_YEARS-1), 'spouses_number':[0]*MAX_YEARS, 'children_number':[0]*MAX_YEARS}  
+                'type':['active'] + ['']*(MAX_YEARS-1), 'number': employees["number"][i],'numbers':[employees["number"][i]] + [0]*(MAX_YEARS-1), 
+                'spouses_number':[0]*MAX_YEARS, 'spouses_counter':0, 'children_number':[0]*MAX_YEARS, 'children_counter':0}  
         else:
             employees_proj[employees["id"][i]] = {'data':dict(zip(employees.columns[1:],list(employees.iloc[i])[1:])), 'exist':1, 
                 'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 
-                'type':['retired']*MAX_YEARS, 'numbers':[employees["number"][i]] + [0]*(MAX_YEARS-1), 'spouses_number':[0]*MAX_YEARS, 'children_number':[0]*MAX_YEARS}
+                'type':['retired']*MAX_YEARS, 'number': employees["number"][i], 'numbers':[employees["number"][i]] + [0]*(MAX_YEARS-1), 
+                'spouses_number':[0]*MAX_YEARS, 'spouses_counter':0, 'children_number':[0]*MAX_YEARS, 'children_counter':0}
+        
+        # update age0 : age at begining of calculations
         employees_proj[employees["id"][i]]['data']['age0'] = employees["age"][i]
 
-        # if 'number' in list(employees.columns[1:]):
-        #     employees_proj[employees["id"][i]]['numbers'][0] = employees["number"][i]
-        # else:
-        #     employees_proj[employees["id"][i]]['numbers'][0] = 1
 
     
 
@@ -54,18 +54,14 @@ def init_spouses_proj(spouses, MAX_YEARS, employees_proj_ = None):
     for i in range(n_s):
         spouses_proj[(spouses["id"][i], spouses["rang"][i])] = {'data':dict(zip(spouses.columns[2:],list(spouses.iloc[i])[2:])), 'exist':1, 
             'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS,'rev' : [0]*MAX_YEARS,
-            'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1), 'numbers':[spouses["number"][i]] + [0]*(MAX_YEARS-1)}
+            'type':[spouses["type"][i]] + ['']*(MAX_YEARS-1),'number':spouses["number"][i], 'numbers':[spouses["number"][i]] + [0]*(MAX_YEARS-1)}
         spouses_proj[(spouses["id"][i], spouses["rang"][i])]['data']['age0'] = spouses["age"][i]
-
-        # if 'number' in list(spouses.columns[1:]):
-        #     spouses_proj[(spouses["id"][i], spouses["rang"][i])]['numbers'][0] = spouses["number"][i]
-        # else:
-        #     spouses_proj[(spouses["id"][i], spouses["rang"][i])][0] = 1
 
         # set the number of spouses of the employee attached to this spouse
         if not (employees_proj_ is None):
             if spouses["type"][i] !='widow':
                 employees_proj_[spouses["id"][i]]['spouses_number'][0] +=spouses["number"][i]
+                employees_proj_[spouses["id"][i]]['spouses_counter'] +=spouses["number"][i]
 
     return spouses_proj
 
@@ -83,19 +79,16 @@ def init_children_proj(children, MAX_YEARS, employees_proj_ = None):
 
     for i in range(n_c):
         children_proj[(children["id"][i], children["rang"][i])] = {'data':dict(zip(children.columns[2:],list(children.iloc[i])[2:])), 'exist':1, 
-            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS,
-            'type':[children["type"][i]] + ['']*(MAX_YEARS-1), 'numbers':[children["number"][i]] + [0]*(MAX_YEARS-1)}
+            'entrance':0, 'lives':[1] + [0]*(MAX_YEARS-1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS,
+            'type':[children["type"][i]] + ['']*(MAX_YEARS-1),'number': children["number"][i] , 'numbers':[children["number"][i]] + [0]*(MAX_YEARS-1)}
         children_proj[(children["id"][i], children["rang"][i])]['data']['age0'] = children["age"][i]
 
-        # if 'number' in list(children.columns[1:]):
-        #     children_proj[(children["id"][i], children["rang"][i])]['numbers'][0] = children["number"][i]
-        # else:
-        #     children_proj[(children["id"][i], children["rang"][i])]['numbers'][0] = 1
 
-        # set the number of children of the employee attached to this spouse
+        # set the number of children of the employee attached to this child
         if not (employees_proj_ is None):
             if children["type"][i]!='widow':
                 employees_proj_[children["id"][i]]['children_number'][0] +=children["number"][i]
+                employees_proj_[children["id"][i]]['children_counter'] +=children["number"][i]
 
     return children_proj
     

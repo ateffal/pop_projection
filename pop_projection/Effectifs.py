@@ -17,12 +17,12 @@ import numpy as np
 import random
 
 EMPLOYEES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
-                'res', 'type', 'numbers', 'spouses_number', 'children_number']
+                'res', 'type', 'numbers', 'spouses_number', 'spouses_counter', 'children_number' , 'children_counter', 'retirement']
 
 SPOUSES_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 
-                'rev', 'type', 'numbers']
+                'rev', 'type', 'numbers', 'retirement']
 
-CHILDREN_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 'type', 'numbers']
+CHILDREN_PROJ_KEYS = ['exist', 'entrance', 'lives', 'deaths', 'type', 'numbers', 'retirement']
 
 
 
@@ -181,7 +181,9 @@ def get_cols_values(employees_proj_, id_e, spouses_proj_,
 
     
 
-def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None,  law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'], law_birth_ = None, birth_periode = ['active', 'retired'], max_child_age = 120, law_replacement_ =  None):
+def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MAX_YEARS = 50, law_retirement_ = None,  
+                   law_resignation_ = None, law_marriage_ = None, age_diff = 5, marriage_periode = ['active', 'retired'], 
+                   law_birth_ = None, birth_periode = ['active', 'retired'], max_child_age = 120, law_replacement_ =  None, rev_in_ret_periode = False):
     
     """ Main function that project population of a retirement plan (employees their spouses and their children) given laws of :
         mortality, retirement, resignation, marriage, birth and replacement.
@@ -339,6 +341,8 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
     spouses_proj = tools.init_spouses_proj(spouses, MAX_YEARS, employees_proj)
     children_proj = tools.init_children_proj(children, MAX_YEARS, employees_proj)
 
+    print('children number for id111157 : ', employees_proj['id111157']['children_number'])
+
     # dic where to store retired of each year : {year : [list of employees that retired that year (their ids)] }
     new_retirees = dict(zip([i for i in range(1, MAX_YEARS)],list([[]]*(MAX_YEARS - 1))))
     
@@ -357,15 +361,18 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         
 
         """
-        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':0, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
-        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS, 'spouses_number':[0]*MAX_YEARS,'children_number':[0]*MAX_YEARS}
+        employees_proj[id_] = {'data':dict(zip(employees.columns[1:],data_emp)), 'exist':1, 'entrance':(year_), 'lives':[0] * MAX_YEARS, 
+        'deaths' : [0]*MAX_YEARS, 'res':[0]*MAX_YEARS, 'type':[''] * MAX_YEARS,'number' : ponderation,'numbers':[''] * MAX_YEARS, 'spouses_number':[0]*MAX_YEARS,
+        'children_number':[0]*MAX_YEARS, 'children_counter':0}
         
         # updating age0, lives and type
         employees_proj[id_]['lives'][year_] = ponderation
         employees_proj[id_]['type'][year_] = 'active'
         employees_proj[id_]['data']['age0'] = employees_proj[id_]['data']['age']
-        # employees_proj[id_]['spouses_number'] = 0
-        # employees_proj[id_]['children_number'] = 0
+        employees_proj[id_]['numbers'][year_] = ponderation
+
+        # update number in data dic 
+        employees_proj[id_]['data']['number'] = ponderation
         
     def add_new_spouse(employee_id, year_, probMar=1):
         """Adds a new spouse in the spouses_proj dic.
@@ -402,7 +409,8 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         rang = year_
         if not ((employee_id, rang) in spouses_proj):
             spouses_proj[(employee_id, rang)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],[sex_temp, age_temp, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+                'entrance':year_, 'lives':[0] * year_ + [live_emp * probMar] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 
+                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1), 'number':live_emp*probMar}
 
             spouses_proj[(employee_id, rang)]['rev'] = [0]*MAX_YEARS
             spouses_proj[(employee_id, rang)]['res'] = [0]*MAX_YEARS
@@ -412,6 +420,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
     
         # update number of spouses
         employees_proj[employee_id]['spouses_number'][year_] += live_emp * probMar
+
+        # update number in data dic
+        spouses_proj[(employee_id, rang)]['data']['number'] = live_emp * probMar
+
         
     def add_new_child(employee_id, rang_, year_, rang_child):
         """Adds a new child in the children_proj dic.
@@ -424,18 +436,18 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         
         if employees_proj[employee_id]["data"]["type"] == "active" or employees_proj[employee_id]["data"]["type"] == "retired" :
             if employees_proj[employee_id]["data"]["sex"] == 'female':
-                # args_ = tuple([employees_proj[employee_id]["data"][z] for z in cols_birth])
                 args_ = get_cols_values(employees_proj,employee_id, spouses_proj,(employee_id, rang_),
                 None, None, employees_proj,employee_id, cols_birth, i)
                 probBirth = law_birth(*args_)
             else:
-                # args_ = tuple([spouses_proj[(employee_id, rang_)]["data"][z] for z in cols_birth])
                 args_ = get_cols_values(employees_proj,employee_id, spouses_proj,(employee_id, rang_),
-                None, None, employees_proj,employee_id, cols_birth, i)
+                None, None, spouses_proj,(employee_id, rang_), cols_birth, i)
                 probBirth = law_birth(*args_)
         else:
             return
-                
+
+
+
         if probBirth == 0:
             return
         
@@ -444,7 +456,10 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         #     live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
         # else:
         #     live_emp = employees_proj[employee_id]["lives"][year_]
+
         live_emp = spouses_proj[(employee_id, rang_)]["lives"][year_]
+
+
         
         #type
         type_temp = employees_proj[employee_id]["type"][i]
@@ -452,13 +467,16 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         #if not already added add it
         if not (employee_id, rang_child) in children_proj:
             children_proj[(employee_id, rang_child)] = {'data':dict(zip(['sex', 'age', 'type', 'familyStatus'],['female', 0, type_temp,'not married'])), 'exist':1, 
-                'entrance':(year_+1), 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS,  
-                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1)}
+                'entrance':year_, 'lives':[0] * year_ + [live_emp * probBirth] + [0] * (MAX_YEARS- year_ - 1), 'deaths' : [0]*MAX_YEARS, 'res' : [0]*MAX_YEARS, 'rev' : [0]*MAX_YEARS, 
+                'type':[''] * year_ + [type_temp] + [''] * (MAX_YEARS- year_ - 1), 'number':live_emp * probBirth}
             children_proj[(employee_id, rang_child)]['data']['age0'] = 0
-    
+
+            # update number in data dic
+            children_proj[(employee_id, rang_child)]['data']['number'] = live_emp * probBirth
+
             # update number of children
-            employees_proj[employee_id]['children_number'][year_] += live_emp * probBirth
-        
+            employees_proj[employee_id]['children_number'][year_] = employees_proj[employee_id]['children_number'][year_] + live_emp * probBirth
+            employees_proj[employee_id]['children_counter'] += probBirth
         
     # main loop
     for i in range(1, MAX_YEARS):
@@ -569,7 +587,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         for id_s, spouse in spouses_proj.items():
             
             # if new spouse continue (treate next year)
-            if spouse['entrance'] > i:
+            if spouse['entrance'] >= i:
                 continue
 
             age = spouse["data"]['age']
@@ -606,24 +624,22 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 spouse["res"][i] = spouse["res"][i] + spouse["lives"][i-1] * resignation * survie
 
             # update rev
-            if spouse["type"][i-1] == "active" or spouse["type"][i-1] == "retired" or spouse["type"][i-1] == '':
-                # cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(i)])
-                # cum_deaths += employees_proj[id_s[0]]["deaths"][i]
-                # spouse["rev"][i] = spouse["lives"][i] * employees_proj[id_s[0]]["deaths"][i]
-                # cum_deaths = act.sfs_nQx(employees_proj[id_s[0]]["data"]["age0"]+spouse["entrance"]-employees_proj[id_s[0]]["entrance"],
-                #              i-spouse["entrance"], mortalityTable)
-                cum_deaths = employees_proj[id_s[0]]["lives"][spouse["entrance"]] - employees_proj[id_s[0]]["lives"][i]
-                cum_deaths = (cum_deaths - sum([employees_proj[id_s[0]]["res"][k] for k in range(spouse["entrance"], i+1)]))
-                if employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]] !=0:
-                    cum_deaths /= employees_proj[id_s[0]]["lives"][employees_proj[id_s[0]]["entrance"]]
-                spouse["rev"][i] = spouse["lives"][i] * cum_deaths
+            if spouse["data"]["type"] != "widow":
+                if 'retired' in employees_proj[id_s[0]]["type"]:
+                    year_ret = employees_proj[id_s[0]]["type"].index('retired')
+                    if i>= year_ret:
+                        cum_deaths = sum([employees_proj[id_s[0]]["deaths"][k] for k in range(year_ret, i+1)])
+                        if spouse["number"] !=0:
+                            cum_deaths = cum_deaths/spouse["number"]
+                            spouse["rev"][i] = spouse["lives"][i] * cum_deaths
+                        else:
+                            spouse["rev"][i] = 0
+
             
             #handling births for active and retired only
-            # if spouse["data"]["type"] == "active" or spouse["data"]["type"] == "retired" :
-            #     add_new_child(id_s[0],id_s[1], i)
-
             if spouse["type"][i] in birth_periode:
-                add_new_child(id_s[0],id_s[1], i, 100*id_s[1] + i)
+                add_new_child(id_s[0],id_s[1], i  , employees_proj[id_s[0]]["children_counter"] + 1000)
+                # add_new_child(id_s[0],id_s[1], i , 100*id_s[1] + i)
 
             #update age of spouse
             spouse["data"]['age'] = spouse["data"]['age'] + 1
@@ -636,7 +652,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         for id_c, child in children_proj.items():
             
             # if new child continue (treate next year)
-            if child['entrance'] > i:
+            if child['entrance'] >= i:
                 continue
 
             
@@ -644,7 +660,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
             age = child["data"]['age']
 
             # if age of child equals max_child_age, continue
-            if age >= max_child_age:
+            if age > max_child_age:
                 continue
             
             #probability of surviving
@@ -669,10 +685,36 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 resignation = 0
            
             #update lives
-            child["lives"][i] = child["lives"][i-1] * survie * (1-resignation)
+            child["lives"][i] = child["lives"][i] + child["lives"][i-1] * survie * (1-resignation)
             
             #update deaths
             child["deaths"][i] = child["lives"][i-1] * death
+
+            # update res
+            if child["type"][i] == "active":
+                child["res"][i] = child["res"][i] + child["lives"][i-1] * resignation * survie
+
+            # update rev
+            if child["data"]["type"] != "widow":
+                if rev_in_ret_periode:  # reversion considered in retirement periode only
+                    if 'retired' in employees_proj[id_c[0]]["type"]:
+                        year_ret = employees_proj[id_c[0]]["type"].index('retired')
+                        if i>= year_ret:
+                            cum_deaths = sum([employees_proj[id_c[0]]["deaths"][k] for k in range(year_ret, i+1)])
+                            if child["number"] !=0:
+                                cum_deaths = cum_deaths/child["number"]
+                                child["rev"][i] = child["lives"][i] * cum_deaths
+                            else:
+                                child["rev"][i] = 0
+                else:
+                    cum_deaths = sum([employees_proj[id_c[0]]["deaths"][k] for k in range(0, i+1)])
+                    if child["number"] !=0:
+                        cum_deaths = cum_deaths/child["number"]
+                        child["rev"][i] = child["lives"][i] * cum_deaths
+                    else:
+                        child["rev"][i] = 0
+                    
+
             
             #update age of child
             child["data"]['age'] = child["data"]['age'] + 1
@@ -739,6 +781,8 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
     # number of living widows
     effectif_ayants_cause = [0] * MAX_YEARS
     effectif_nouveaux_ayants_cause = [0]*MAX_YEARS
+    effectif_nouveaux_orphelins = [0]*MAX_YEARS
+
 
     for i in range(MAX_YEARS):
         for a in employees_proj_.values():
@@ -783,21 +827,28 @@ def globalNumbers(employees_proj_, spouses_proj_, children_proj_, MAX_YEARS):
             if a['type'][i] == 'widow':
                 effectif_enfants_ayant_cause[i] = effectif_enfants_ayant_cause[i] + a['lives'][i]
                 effectif_deces_enfants_ayant_cause[i] = effectif_deces_enfants_ayant_cause[i] + a['deaths'][i]
+
+            # new orphans
+            effectif_nouveaux_orphelins[i] = effectif_nouveaux_orphelins[i] + a['rev'][i]
             
     # construct DataFrame of projected numbers
     totalEmployees = [sum(x) for x in zip(effectif_actifs, effectif_retraites)]
     totalSpouses = [sum(x) for x in zip(effectif_conjoints_actifs, effectif_conjoints_retraites)]
-    totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites, effectif_enfants_ayant_cause)]
+    totalAyantsCause = [sum(x) for x in zip(effectif_ayants_cause, effectif_nouveaux_ayants_cause)]
+    totalChildren = [sum(x) for x in zip(effectif_enfants_actifs, effectif_enfants_retraites)]
+    totalOrphelins = [sum(x) for x in zip(effectif_enfants_ayant_cause, effectif_nouveaux_orphelins)]
 
     Data = {'Year':list(range(MAX_YEARS)), 'effectif_actifs' : effectif_actifs, 'effectif_retraites' : effectif_retraites, 'Total Employees' : totalEmployees,
-            'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_nouveaux_ayants_cause' : effectif_nouveaux_ayants_cause,'effectif_conjoints_actifs' : effectif_conjoints_actifs,
-            'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 'effectif_enfants_actifs' : effectif_enfants_actifs,
-            'effectif_enfants_retraites' : effectif_enfants_retraites, 'effectif_enfants_ayant_cause' : effectif_enfants_ayant_cause,'Total Children' : totalChildren}
+            'effectif_ayants_cause' : effectif_ayants_cause, 'effectif_nouveaux_ayants_cause' : effectif_nouveaux_ayants_cause,'Total Ayants-cause' : totalAyantsCause, 
+            'effectif_orphelins' : effectif_enfants_ayant_cause, 'effectifs_nouveaux_orphelins' : effectif_nouveaux_orphelins, 'Total Orphelins' : totalOrphelins,
+            'effectif_conjoints_actifs' : effectif_conjoints_actifs,  'effectif_conjoints_retraites' : effectif_conjoints_retraites, 'Total Spouses' : totalSpouses, 
+            'effectif_enfants_actifs' : effectif_enfants_actifs, 'effectif_enfants_retraites' : effectif_enfants_retraites,'Total Children' : totalChildren}
 
     Effectifs = pd.DataFrame(data=Data,
-                columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause','effectif_nouveaux_ayants_cause',
-                         'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 'effectif_enfants_actifs', 
-                         'effectif_enfants_retraites', 'effectif_enfants_ayant_cause','Total Children' ]) 
+                columns=['Year', 'effectif_actifs', 'effectif_retraites', 'Total Employees' , 'effectif_ayants_cause','effectif_nouveaux_ayants_cause','Total Ayants-cause',
+                         'effectif_orphelins', 'effectifs_nouveaux_orphelins', 'Total Orphelins',
+                         'effectif_conjoints_actifs', 'effectif_conjoints_retraites', 'Total Spouses', 
+                         'effectif_enfants_actifs',  'effectif_enfants_retraites', 'Total Children']) 
     return Effectifs
     
 def individual_employees_numbers(employees_proj_): 
@@ -831,8 +882,8 @@ def individual_employees_numbers(employees_proj_):
         deaths.append(employees_proj_[emp]['deaths'])
         res.append(employees_proj_[emp]['res'])
         types.append(employees_proj_[emp]['type'])
-        nb_spouses.append(employees_proj_[emp]['spouses_number'][-1])
-        nb_children.append(employees_proj_[emp]['children_number'][-1])
+        nb_spouses.append(employees_proj_[emp]['spouses_number'][employees_proj_[emp]['entrance']]) # number of spouses at entrance
+        nb_children.append(employees_proj_[emp]['children_number'][employees_proj_[emp]['entrance']]) # number of children at entrance
 
     # number of employees
     n_emp = len(ids)
@@ -895,8 +946,8 @@ def individual_employees_numbers(employees_proj_):
 
 def individual_spouses_numbers(spouses_proj_): 
     """
-    Returns a tuple of four data frames : projected lives, deaths, reversion and 
-    type for spouses
+    Returns a tuple of four data frames : projected lives, deaths, types, reversion and 
+    resignation for spouses
     
     Parameters
     ----------
@@ -990,8 +1041,7 @@ def individual_children_numbers(children_proj_):
     
     Parameters
     ----------
-    children_proj_ : dic of the form of that returned by projeterEffectif
-    max_child_age  : maximum age after which the child is excluded from the population
+    children_proj_ : dic of the form of that returned by projeterNumbers
     
     """
     ids = []
@@ -1001,6 +1051,8 @@ def individual_children_numbers(children_proj_):
     lives = []
     deaths = []
     types = []
+    res = []
+    rev = []
     
     # Store data in lists
     for child in children_proj_:
@@ -1011,6 +1063,8 @@ def individual_children_numbers(children_proj_):
         lives.append(children_proj_[child]['lives'])
         deaths.append(children_proj_[child]['deaths'])
         types.append(children_proj_[child]['type'])
+        res.append(children_proj_[child]['res'])
+        rev.append(children_proj_[child]['rev'])
 
     # number of children
     n_children = len(ids)
@@ -1022,6 +1076,8 @@ def individual_children_numbers(children_proj_):
     df_lives = pd.DataFrame()
     df_deaths = pd.DataFrame()
     df_types = pd.DataFrame()
+    df_res = pd.DataFrame()
+    df_rev = pd.DataFrame()
 
     #add the id and rang columns which are key
     df_lives['id'] = ids
@@ -1030,6 +1086,10 @@ def individual_children_numbers(children_proj_):
     df_deaths['rang'] = rangs
     df_types['id'] = ids
     df_types['rang'] = rangs
+    df_res['id'] = ids
+    df_res['rang'] = rangs
+    df_rev['id'] = ids
+    df_rev['rang'] = rangs
 
     # data columns
     cols_data = data[0].keys()
@@ -1044,18 +1104,24 @@ def individual_children_numbers(children_proj_):
         df_lives[c] = temp
         df_deaths[c] = temp
         df_types[c] = temp
+        df_res[c] = temp
+        df_rev[c] = temp
 
     
     df_lives['entrance'] = entrances
     df_deaths['entrance'] = entrances
     df_types['entrance'] = entrances
+    df_res['entrance'] = entrances
+    df_rev['entrance'] = entrances
     
     for year in range(n_years):
         df_lives['year_' + str(year)] = [lives[child][year] for child in range(n_children)]
         df_deaths['year_' + str(year)] = [deaths[child][year] for child in range(n_children)]
         df_types['year_' + str(year)] = [types[child][year] for child in range(n_children)]
+        df_res['year_' + str(year)] = [res[child][year] for child in range(n_children)]
+        df_rev['year_' + str(year)] = [rev[child][year] for child in range(n_children)]
 
-    return df_lives, df_deaths, df_types
+    return df_lives, df_deaths, df_types, df_rev, df_res
 
 
 def leavingNumbers(employees_proj_, n_new_retirees_, MAX_YEARS):
@@ -1116,7 +1182,7 @@ def plot_pyramide_spouses(numbers_, year_, MAX_YEARS, color_males = (149/255,125
 
     # Check that year is greater than 0 and smaller than MAX_YEARS
     if year_ < 1 or year_ > MAX_YEARS:
-        print("year_ maust be greater than 0 and smaller than MAX_YEARS !")
+        print("year_ must be greater than 0 and smaller than MAX_YEARS !")
         return
     
     # Setting ages boundaries
