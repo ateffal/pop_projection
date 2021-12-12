@@ -644,7 +644,7 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
         for id_c, child in children_proj.items():
             
             # if new child continue (treate next year)
-            if child['entrance'] > i:
+            if child['entrance'] >= i:
                 continue
 
             
@@ -677,10 +677,34 @@ def projectNumbers(employees, spouses, children, mortalityTable = 'TV 88-90', MA
                 resignation = 0
            
             #update lives
-            child["lives"][i] = child["lives"][i-1] * survie * (1-resignation)
+            child["lives"][i] = child["lives"][i] + child["lives"][i-1] * survie * (1-resignation)
             
             #update deaths
             child["deaths"][i] = child["lives"][i-1] * death
+            
+            # update res
+            if child["type"][i] == "active":
+                child["res"][i] = child["res"][i] + child["lives"][i-1] * resignation * survie
+
+            # update rev
+            if child["data"]["type"] != "widow":
+                if rev_in_ret_periode:  # reversion considered in retirement periode only
+                    if 'retired' in employees_proj[id_c[0]]["type"]:
+                        year_ret = employees_proj[id_c[0]]["type"].index('retired')
+                        if i>= year_ret:
+                            cum_deaths = sum([employees_proj[id_c[0]]["deaths"][k] for k in range(year_ret, i+1)])
+                            if child["number"] !=0:
+                                cum_deaths = cum_deaths/child["number"]
+                                child["rev"][i] = child["lives"][i] * cum_deaths
+                            else:
+                                child["rev"][i] = 0
+                else:
+                    cum_deaths = sum([employees_proj[id_c[0]]["deaths"][k] for k in range(0, i+1)])
+                    if child["number"] !=0:
+                        cum_deaths = cum_deaths/child["number"]
+                        child["rev"][i] = child["lives"][i] * cum_deaths
+                    else:
+                        child["rev"][i] = 0
             
             #update age of child
             child["data"]['age'] = child["data"]['age'] + 1
