@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pop_projection",
-    version="2.2.3",
+    version="3.0.0",
     author="Amine TEFFAL",
     author_email="a.teffal@gmail.com",
     description="Projection of population of a retirement plan.",
