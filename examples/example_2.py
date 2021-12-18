@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Path for input data
-path = "./pop_projection/data/"
+path = "../pop_projection/data/"
 
 # Loading data
 employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")

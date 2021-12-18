@@ -76,7 +76,7 @@ def law_replacement1(departures_, year_):
 
 
 # Path for input data
-path = "./pop_projection/data/"
+path = "../pop_projection/data/"
 
 # Number of years to project
 MAX_ANNEES = 50

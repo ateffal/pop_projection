@@ -95,7 +95,7 @@ def law_replacement1(departures_, year_):
 
 
 # Path for input data
-path = "./pop_projection/data/"
+path = "../pop_projection/data/"
 
 # Loading data
 employees = pd.read_csv(path + "employees.csv", sep=";", decimal=",")
